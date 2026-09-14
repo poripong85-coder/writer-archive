@@ -1,0 +1,13 @@
+{
+  "name": "gyulggeopjil",
+  "version": "1.0.0",
+  "description": "귤껍질 — 매일의 인사이트 조각을 모으고 자정에 아카이브하는 로컬 우선 웹앱",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 5173",
+    "dev": "python3 -m http.server 5173",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}
