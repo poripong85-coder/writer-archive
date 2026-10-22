@@ -1,13 +1,16 @@
-// 달력 — 네이버 캘린더처럼 날짜별로 조각을 훑어보는 화면.
+// 달력 — 날짜별로 조각을 훑어보는 화면. 날짜를 누르면 그날 조각이 열린다.
 
 import { el, clear, fragmentCard, openSheet, emptyState } from '../ui.js';
 import * as store from '../store.js';
 import {
-  WEEKDAYS, monthMatrix, densityLevel, dayKeyOf, formatDayLabel,
+  WEEKDAYS, monthMatrix, densityLevel, formatDayLabel,
   summarize, highlightOf, extractUrls,
 } from '../util.js';
 
-export function createCalendarView() {
+export function createCalendarView(bookKey) {
+  const book = () => store.book(bookKey);
+  let selected = null;
+
   const head = el('div', { class: 'cal-head' });
   const stats = el('div', { class: 'month-stats' });
   const weekdays = el('div', { class: 'cal-weekdays' });
@@ -26,14 +29,15 @@ export function createCalendarView() {
   }
 
   function openDaySheet(dayKey) {
-    const entries = store.entriesOf(dayKey);
-    store.openDay(dayKey);
+    const entries = book()?.entriesOf(dayKey) || [];
+    selected = dayKey;
+    renderGrid();
     openSheet(formatDayLabel(dayKey), (body) => {
       if (!entries.length) {
         body.append(emptyState('🌙', '이 날은 기록이 없어요', '조각이 없는 날도 하루의 일부예요.'));
         return;
       }
-      body.append(fragmentCard(dayKey, entries, { sealed: store.isSealed(dayKey), limit: 999 }));
+      body.append(fragmentCard(dayKey, entries, { sealed: dayKey < store.state.todayKey, limit: 999 }));
     });
   }
 
@@ -57,46 +61,43 @@ export function createCalendarView() {
     const { year, month } = store.state.calendarMonth;
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     let days = 0, count = 0, links = 0, photos = 0;
-    for (const [dayKey, entries] of store.state.entriesByDay) {
+    for (const [dayKey, entries] of book()?.byDay() || []) {
       if (!dayKey.startsWith(prefix) || !entries.length) continue;
       const s = summarize(entries);
       days += 1; count += s.count; links += s.links; photos += s.photos;
     }
     clear(stats);
-    const tiles = [
-      [days, '기록한 날'],
-      [count, '조각'],
-      [links, '링크'],
-      [photos, '사진'],
-    ];
-    for (const [n, label] of tiles) {
+    for (const [n, label] of [[days, '기록한 날'], [count, '조각'], [links, '링크'], [photos, '사진']]) {
       stats.append(el('div', { class: 'stat-tile' }, el('b', { text: String(n) }), el('span', { text: label })));
     }
   }
 
   function renderGrid() {
     const { year, month } = store.state.calendarMonth;
-    const todayKey = dayKeyOf();
+    const todayKey = store.state.todayKey;
+    const byDay = book()?.byDay() || new Map();
     clear(grid);
     for (const week of monthMatrix(year, month)) {
       for (const cell of week) {
-        const entries = store.entriesOf(cell.dayKey);
+        const entries = byDay.get(cell.dayKey) || [];
         const s = summarize(entries);
-        const hasLink = s.links > 0;
-        const hasPhoto = s.photos > 0;
-        const hasNote = entries.some((e) => (e.text || '').replace(extractUrls(e.text).join(' '), '').trim().length > 0);
+        const hasNote = entries.some((e) => {
+          let t = e.text || '';
+          for (const u of extractUrls(t)) t = t.replace(u, '');
+          return t.trim().length > 0;
+        });
 
         const classes = ['cal-cell'];
         if (!cell.inMonth) classes.push('other');
         if (cell.dayKey === todayKey) classes.push('today');
         if (cell.weekday === 0) classes.push('sun');
         if (cell.weekday === 6) classes.push('sat');
-        if (store.state.selectedDay === cell.dayKey) classes.push('selected');
+        if (selected === cell.dayKey) classes.push('selected');
 
         const node = el('button', {
           class: classes.join(' '),
           type: 'button',
-          dataset: { level: String(densityLevel(s.count)) },
+          dataset: { level: String(densityLevel(s.count)), day: cell.dayKey },
           'aria-label': `${cell.dayKey} 조각 ${s.count}개`,
           onclick: () => openDaySheet(cell.dayKey),
         },
@@ -109,8 +110,8 @@ export function createCalendarView() {
           if (preview) node.append(el('span', { class: 'cal-preview', text: preview }));
           node.append(el('span', { class: 'cal-badges' },
             hasNote ? el('i', { class: 'cal-dot note' }) : null,
-            hasLink ? el('i', { class: 'cal-dot link' }) : null,
-            hasPhoto ? el('i', { class: 'cal-dot photo' }) : null,
+            s.links ? el('i', { class: 'cal-dot link' }) : null,
+            s.photos ? el('i', { class: 'cal-dot photo' }) : null,
             el('span', { class: 'cal-count', text: String(s.count) }),
           ));
         }
@@ -125,5 +126,5 @@ export function createCalendarView() {
     renderGrid();
   }
 
-  return { root, update, activate: update, deactivate() {}, openDaySheet };
+  return { root, update, activate() {}, deactivate() {}, openDaySheet };
 }

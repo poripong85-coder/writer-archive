@@ -1,10 +1,12 @@
-// IndexedDB 저장소. 모든 데이터는 이 기기 안에만 남습니다.
+// IndexedDB 저장소 — 단독 실행(로컬 모드)용, 그리고 예전 버전에서 이 기기에 쌓인 조각을 읽어오는 용도.
+// claude.ai 안에서 열리면 기록은 공유 저장소(db 기능)에 남고, 이 파일은 이전·백업에만 쓰인다.
 
 const DB_NAME = 'gyulggeopjil';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-export const STORE_ENTRIES = 'entries';
-export const STORE_ARCHIVES = 'archives';
+export const STORE_PUBLIC = 'entries';       // v1부터 쓰던 저장소 = 공개 기록장
+export const STORE_MINE = 'mine_entries';    // v2: 내 기록장 (로컬 모드)
+export const STORE_ARCHIVES = 'archives';    // v1 잔재 — 더는 쓰지 않지만 지우지 않는다
 export const STORE_META = 'meta';
 
 let dbPromise = null;
@@ -12,13 +14,21 @@ let dbPromise = null;
 export function openDb() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    let req;
+    try {
+      req = indexedDB.open(DB_NAME, DB_VERSION);
+    } catch (err) {
+      reject(err);
+      return;
+    }
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_ENTRIES)) {
-        const s = db.createObjectStore(STORE_ENTRIES, { keyPath: 'id' });
-        s.createIndex('dayKey', 'dayKey', { unique: false });
-        s.createIndex('createdAt', 'createdAt', { unique: false });
+      for (const name of [STORE_PUBLIC, STORE_MINE]) {
+        if (!db.objectStoreNames.contains(name)) {
+          const s = db.createObjectStore(name, { keyPath: 'id' });
+          s.createIndex('dayKey', 'dayKey', { unique: false });
+          s.createIndex('createdAt', 'createdAt', { unique: false });
+        }
       }
       if (!db.objectStoreNames.contains(STORE_ARCHIVES)) {
         db.createObjectStore(STORE_ARCHIVES, { keyPath: 'dayKey' });
@@ -54,68 +64,45 @@ const wrap = (req) => new Promise((resolve, reject) => {
 
 /* ---------- entries ---------- */
 
-export async function putEntry(entry) {
+export async function putEntry(store, entry) {
   const db = await openDb();
-  const { t, done } = tx(db, [STORE_ENTRIES], 'readwrite');
-  t.objectStore(STORE_ENTRIES).put(entry);
+  const { t, done } = tx(db, [store], 'readwrite');
+  t.objectStore(store).put(entry);
   await done;
   return entry;
 }
 
-export async function deleteEntry(id) {
+export async function deleteEntry(store, id) {
   const db = await openDb();
-  const { t, done } = tx(db, [STORE_ENTRIES], 'readwrite');
-  t.objectStore(STORE_ENTRIES).delete(id);
+  const { t, done } = tx(db, [store], 'readwrite');
+  t.objectStore(store).delete(id);
   await done;
 }
 
-export async function getEntry(id) {
+export async function getEntry(store, id) {
   const db = await openDb();
-  return wrap(db.transaction(STORE_ENTRIES).objectStore(STORE_ENTRIES).get(id));
+  return wrap(db.transaction(store).objectStore(store).get(id));
 }
 
-export async function entriesOfDay(dayKey) {
+export async function allEntries(store) {
   const db = await openDb();
-  const idx = db.transaction(STORE_ENTRIES).objectStore(STORE_ENTRIES).index('dayKey');
-  const rows = await wrap(idx.getAll(IDBKeyRange.only(dayKey)));
+  const rows = await wrap(db.transaction(store).objectStore(store).getAll());
   return rows.sort((a, b) => a.createdAt - b.createdAt);
 }
 
-export async function allEntries() {
+export async function clearStore(store) {
   const db = await openDb();
-  const rows = await wrap(db.transaction(STORE_ENTRIES).objectStore(STORE_ENTRIES).getAll());
-  return rows.sort((a, b) => a.createdAt - b.createdAt);
-}
-
-/** dayKey → 엔트리 배열 (시간순) */
-export async function entriesByDay() {
-  const rows = await allEntries();
-  const map = new Map();
-  for (const e of rows) {
-    if (!map.has(e.dayKey)) map.set(e.dayKey, []);
-    map.get(e.dayKey).push(e);
-  }
-  return map;
-}
-
-/* ---------- archives ---------- */
-
-export async function putArchive(archive) {
-  const db = await openDb();
-  const { t, done } = tx(db, [STORE_ARCHIVES], 'readwrite');
-  t.objectStore(STORE_ARCHIVES).put(archive);
+  const { t, done } = tx(db, [store], 'readwrite');
+  t.objectStore(store).clear();
   await done;
-  return archive;
 }
 
-export async function allArchives() {
+export async function bulkPut(store, entries = []) {
   const db = await openDb();
-  const rows = await wrap(db.transaction(STORE_ARCHIVES).objectStore(STORE_ARCHIVES).getAll());
-  return rows.sort((a, b) => (a.dayKey < b.dayKey ? 1 : -1));
-}
-
-export async function sealedDayKeys() {
-  return new Set((await allArchives()).map((a) => a.dayKey));
+  const { t, done } = tx(db, [store], 'readwrite');
+  const s = t.objectStore(store);
+  for (const e of entries) s.put(e);
+  await done;
 }
 
 /* ---------- meta ---------- */
@@ -132,27 +119,6 @@ export async function setMeta(key, value) {
   t.objectStore(STORE_META).put({ key, value });
   await done;
   return value;
-}
-
-/* ---------- 전체 삭제 / 복원 ---------- */
-
-export async function clearAll() {
-  const db = await openDb();
-  const { t, done } = tx(db, [STORE_ENTRIES, STORE_ARCHIVES, STORE_META], 'readwrite');
-  t.objectStore(STORE_ENTRIES).clear();
-  t.objectStore(STORE_ARCHIVES).clear();
-  t.objectStore(STORE_META).clear();
-  await done;
-}
-
-export async function bulkPut({ entries = [], archives = [] }) {
-  const db = await openDb();
-  const { t, done } = tx(db, [STORE_ENTRIES, STORE_ARCHIVES], 'readwrite');
-  const es = t.objectStore(STORE_ENTRIES);
-  const as = t.objectStore(STORE_ARCHIVES);
-  for (const e of entries) es.put(e);
-  for (const a of archives) as.put(a);
-  await done;
 }
 
 export async function storageEstimate() {

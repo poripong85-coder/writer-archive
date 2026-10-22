@@ -4,7 +4,7 @@ import {
   formatTime, formatDayLabel, relativeDayLabel, richTextHtml,
   extractUrls, domainOf, pathOf, summarize, escapeHtml,
 } from './util.js';
-import { imageUrl } from './media.js';
+import { photoSrc } from './media.js';
 import * as store from './store.js';
 
 export function el(tag, props = {}, ...children) {
@@ -123,11 +123,11 @@ export function confirmDialog(message, { confirmText = '삭제', cancelText = '�
 export function openLightbox(images, index = 0) {
   const overlays = document.getElementById('overlays');
   let i = index;
-  const img = el('img', { src: imageUrl(images[i]), alt: images[i].name || '사진' });
+  const img = el('img', { src: photoSrc(images[i]), alt: images[i].name || '사진' });
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
   const step = (d) => {
     i = (i + d + images.length) % images.length;
-    img.src = imageUrl(images[i]);
+    img.src = photoSrc(images[i]);
   };
   const onKey = (e) => {
     if (e.key === 'Escape') close();
@@ -159,6 +159,14 @@ export function linkCard(url) {
   );
 }
 
+function photoImg(image) {
+  const img = el('img', { src: photoSrc(image), alt: image.name || '사진', loading: 'lazy' });
+  img.addEventListener('error', () => {
+    img.replaceWith(el('span', { class: 'photo-missing', text: '사진을 불러올 수 없어요' }));
+  }, { once: true });
+  return img;
+}
+
 export function photoGrid(images) {
   const shown = images.slice(0, 4);
   const grid = el('div', { class: `photos n${Math.min(shown.length, 4)}` });
@@ -170,7 +178,7 @@ export function photoGrid(images) {
       dataset: isLast ? { more: `+${images.length - 3}` } : {},
       'aria-label': '사진 크게 보기',
       onclick: () => openLightbox(images, idx),
-    }, el('img', { src: imageUrl(image), alt: image.name || '사진', loading: 'lazy' }));
+    }, photoImg(image));
     grid.append(btn);
   });
   return grid;
@@ -181,15 +189,30 @@ function onTagClick(node) {
     const tag = e.target?.dataset?.tag;
     if (!tag) return;
     store.setActiveTag(tag);
-    store.setView('fragments');
   });
   return node;
 }
 
 /* ---------- 엔트리 버블 (오늘 화면) ---------- */
 
-export function entryBubble(entry, { onEdit } = {}) {
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text || '');
+    toast('복사했어요');
+  } catch {
+    toast('복사할 수 없어요');
+  }
+}
+
+/**
+ * @param {object} entry
+ * @param {object} o
+ * @param {import('./books.js').Book} o.book
+ * @param {(entry) => void} [o.onEdit]
+ */
+export function entryBubble(entry, { book, onEdit } = {}) {
   const urls = extractUrls(entry.text);
+  const editable = !!book?.canWrite;
   const bubble = el('div', { class: 'bubble' });
 
   if (entry.text) {
@@ -199,36 +222,34 @@ export function entryBubble(entry, { onEdit } = {}) {
   for (const url of urls.slice(0, 3)) bubble.append(linkCard(url));
 
   bubble.append(el('div', { class: 'entry-actions' },
-    el('button', { type: 'button', text: '수정', onclick: () => onEdit?.(entry) }),
-    el('button', {
-      type: 'button', text: '복사',
-      onclick: async () => {
-        try {
-          await navigator.clipboard.writeText(entry.text || '');
-          toast('복사했어요');
-        } catch { toast('복사할 수 없어요'); }
-      },
-    }),
-    el('button', {
+    editable ? el('button', { type: 'button', text: '수정', onclick: () => onEdit?.(entry) }) : null,
+    el('button', { type: 'button', text: '복사', onclick: () => copyText(entry.text) }),
+    editable ? el('button', {
       type: 'button', text: '삭제',
       onclick: async () => {
         if (!await confirmDialog('이 조각을 지울까요?')) return;
-        await store.removeEntry(entry.id);
-        toast('삭제했어요');
+        try {
+          await book.remove(entry.id);
+          toast('삭제했어요');
+        } catch (err) {
+          toast(err.message || '지우지 못했어요');
+        }
       },
-    }),
+    }) : null,
   ));
 
-  return el('div', { class: `entry${entry.starred ? ' starred' : ''}`, dataset: { id: entry.id } },
-    el('div', { class: 'entry-meta' },
-      el('button', {
+  const star = editable
+    ? el('button', {
         class: `entry-star${entry.starred ? ' on' : ''}`, type: 'button',
         title: '핵심 인사이트로 표시', 'aria-label': '핵심 인사이트로 표시',
+        'aria-pressed': entry.starred ? 'true' : 'false',
         text: entry.starred ? '★' : '☆',
-        onclick: () => store.toggleStar(entry.id),
-      }),
-      el('span', { text: formatTime(entry.createdAt) }),
-    ),
+        onclick: () => book.update(entry.id, { starred: !entry.starred }).catch((err) => toast(err.message)),
+      })
+    : (entry.starred ? el('span', { class: 'entry-star on', title: '핵심 인사이트', text: '★' }) : null);
+
+  return el('div', { class: `entry${entry.starred ? ' starred' : ''}`, dataset: { id: entry.id } },
+    el('div', { class: 'entry-meta' }, star, el('span', { text: formatTime(entry.createdAt) })),
     bubble,
   );
 }
@@ -260,7 +281,7 @@ export function fragmentCard(dayKey, entries, { sealed, limit = 4, onOpenDay } =
   for (const t of stats.tags.slice(0, 6)) {
     statRow.append(el('span', {
       class: 'pill tag-pill', text: `#${t.tag}${t.count > 1 ? ` ${t.count}` : ''}`,
-      onclick: () => { store.setActiveTag(t.tag); store.setView('fragments'); },
+      onclick: () => store.setActiveTag(t.tag),
     }));
   }
   card.append(statRow);

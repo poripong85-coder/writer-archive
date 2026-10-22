@@ -1,0 +1,367 @@
+// 귤껍질 마을 도트 스프라이트. 한 글자 = 한 픽셀, '.' = 투명.
+// 원본 그리드는 이 파일이 전부다 — 그림을 고치려면 글자를 고치면 된다.
+
+export const PALETTE = {
+  "k": "#3b2416",
+  "o": "#f98a1c",
+  "O": "#ffb347",
+  "d": "#d9620b",
+  "h": "#ffe0a8",
+  "g": "#5aa65a",
+  "G": "#2f6e37",
+  "y": "#ffd23f",
+  "Y": "#e0a000",
+  "v": "#fff3b0",
+  "w": "#fff8ec",
+  "p": "#f49ac1",
+  "P": "#d16b98",
+  "s": "#d4d4d4",
+  "S": "#8e8e8e",
+  "t": "#f6d38a",
+  "T": "#e3b45f",
+  "b": "#a86b3c",
+  "B": "#6e4123",
+  "r": "#e2523d",
+  "R": "#a8352a",
+  "c": "#fbe8c8",
+  "C": "#e6c99a",
+  "l": "#ffe680",
+  "u": "#9fd3f0",
+  "x": "#4a4a4a",
+  "e": "#2a1a10",
+  "m": "#ff7b7b"
+};
+
+/** 밤에는 창문에 불이 켜진다 */
+export const NIGHT_SWAP = { u: 'l' };
+
+export const SPRITES = {
+  'gyul': [
+    '............kk............',
+    '...........kbk.kkkk.......',
+    '...........kbkkgggGk......',
+    '...........kbkggggGGk.....',
+    '.........kkkbkkgGGGk......',
+    '.......kkoooboookkk.......',
+    '.....kkooooooooOOOkk......',
+    '....kooooooooooOhOOOk.....',
+    '...kooooooooooooOhOOOk....',
+    '...koooooooooooooOOOOk....',
+    '..koooooookkkkoooooOOOk...',
+    '..kooooookuuuukoooooOOk...',
+    '..kooooookuwuukooooooOk...',
+    '..kooooookuuuukooooooOk...',
+    '..kdoooookkkkkkooooooOk...',
+    '..kdoooooooooooooooooOk...',
+    '..kddoooooookkkkoooooOk...',
+    '...kdoooooookbbbkoooook...',
+    '...kddooooookbbbkooook....',
+    '....kddoooookbbykoook.....',
+    '.....kkddoookbbbkook......',
+    '.......kkkddkbbbkkk.......',
+    '..........kkkkkkkk........',
+    '..........................',
+  ],
+  'star': [
+    '.............k.............',
+    '............kyk............',
+    '............kyk............',
+    '...........kyvyk...........',
+    '...........kyvyk...........',
+    '..........kyyvyyk..........',
+    'kkkkkkkkkkkyyyyyykkkkkkkkkk',
+    'kyyyyyyyyyyyyyyyyyyyyyyyyYk',
+    '.kyyyyyyyyyyyyyyyyyyyyyyYk.',
+    '..kyyyyyykkkkyyyyyyyyyyYk..',
+    '...kyyyyykuukyyyyyyyyYYk...',
+    '....kyyyykuukyyyyyyyYYk....',
+    '.....kyyykkkkyyyyyyYYk.....',
+    '......kyyyyyyyyyyyyYk......',
+    '.....kyyyyyykkkyyyyyYk.....',
+    '.....kyyyyykbbbkyyyyYk.....',
+    '....kyyyyyykbbbkyyyyyYk....',
+    '....kyyyyyykbbykyyyyyYk....',
+    '...kyyyyyyykbbbkyyyyyYYk...',
+    '...kyyyyYkkkbbbkkkYyyyYk...',
+    '..kyyyYYk..kkkkk..kYYyYYk..',
+    '..kyyYYk...........kYYYYk..',
+    '.kyYYkk.............kkYYYk.',
+    '.kYkk.................kkYk.',
+    '.kk.....................kk.',
+    '...........................',
+  ],
+  'pencil': [
+    '.......k.......',
+    '......kxk......',
+    '......kxk......',
+    '.....kxxxk.....',
+    '.....kttTk.....',
+    '....kttttTk....',
+    '....kttttTk....',
+    '...kttttttTk...',
+    '...kttttttTk...',
+    '..kkkkkkkkkkk..',
+    '..kyyyvyyyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyykkkkyYYk..',
+    '..kyykuukyYYk..',
+    '..kyykuukyYYk..',
+    '..kyykkkkyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyykkkkyYYk..',
+    '..kyykllkyYYk..',
+    '..kyykllkyYYk..',
+    '..kyykkkkyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyyyvyyyYYk..',
+    '..kyykkkkkYYk..',
+    '..kyykbbbkYYk..',
+    '..kyykbbbkYYk..',
+    '..kyykbbykYYk..',
+    '..kyykbbbkYYk..',
+    '..kkkkkkkkkkk..',
+    '..ksssssssSSk..',
+    '..kSSSSSSSSSk..',
+    '..kpppppppPPk..',
+    '..kpppppppPPk..',
+    '...kkkkkkkkk...',
+  ],
+  'house': [
+    '..............................',
+    '..............................',
+    '..............kk..............',
+    '.............krrk...kkkk......',
+    '............krrrrk..kBBk......',
+    '...........krrrrrrk.kBBk......',
+    '..........krrrrrrrrkkBBk......',
+    '.........krrrrrrrrrrkBBk......',
+    '........krrrrrrrrrrrrkBk......',
+    '.......krrrrrrrrrrrrrrkk......',
+    '......krrrrrrrrrrrrrrrrk......',
+    '.....krrrrrrrrrrrrrrrrrrk.....',
+    '....krrrrrrrrrrrrrrrrrrrrk....',
+    '...kRRRRRRRRRRRRRRRRRRRRRRk...',
+    '..kkkkkkkkkkkkkkkkkkkkkkkkkk..',
+    '....kccccccccccccccccccCk.....',
+    '....kckkkkkkcccccckkkkkCk.....',
+    '....kcklluklccccccklluCk......',
+    '....kcklluklcckkkcklluCk......',
+    '....kckkkkkkckbbbkkkkkCk......',
+    '....kccccccccckbbbkccccCk.....',
+    '....kcPpPpPpcckbbbkcccCCk.....',
+    '....kcttttttcckbbykcccCCk.....',
+    '....kcCCCCCCcckbbbkccCCCk.....',
+    '....kkkkkkkkkkkkkkkkkkkkk.....',
+    '..............................',
+    '..............................',
+  ],
+  'pet_a': [
+    '....kGk....',
+    '...kgGk....',
+    '..kkkkkkk..',
+    '.koooooOOk.',
+    'kooeoooeOOk',
+    'koooooooOOk',
+    'kommokommOk',
+    'kooookooOOk',
+    '.kooooooOk.',
+    '..kkkkkkk..',
+    '..kk...kk..',
+  ],
+  'pet_b': [
+    '....kGk....',
+    '...kgGk....',
+    '..kkkkkkk..',
+    '.koooooOOk.',
+    'kooeoooeOOk',
+    'koooooooOOk',
+    'kommokommOk',
+    'kooookooOOk',
+    '.kooooooOk.',
+    '..kkkkkkk..',
+    '...kk.kk...',
+  ],
+  'pet_blink': [
+    '....kGk....',
+    '...kgGk....',
+    '..kkkkkkk..',
+    '.koooooOOk.',
+    'kookkookkOk',
+    'koooooooOOk',
+    'kommokommOk',
+    'kooookooOOk',
+    '.kooooooOk.',
+    '..kkkkkkk..',
+    '..kk...kk..',
+  ],
+  'tree': [
+    '....kkkkk....',
+    '..kkgggggkk..',
+    '.kgggggggGGk.',
+    '.kggggggggGk.',
+    'kgggggggggGGk',
+    'kggggggggggGk',
+    'kgggggggggGGk',
+    'kGggggggggGGk',
+    '.kGgggggGGGk.',
+    '..kGGGGGGGk..',
+    '...kkkbkkk...',
+    '.....kbk.....',
+    '.....kbk.....',
+    '.....kBk.....',
+    '....kkkkk....',
+    '.............',
+  ],
+  'flower': [
+    '.kmk.',
+    'kmymk',
+    '.kmk.',
+    '..g..',
+    '.gg..',
+  ],
+  'flower2': [
+    '.kvk.',
+    'kvyvk',
+    '.kvk.',
+    '..g..',
+    '..gg.',
+  ],
+  'cloud': [
+    '......wwww........',
+    '....wwwwwwww......',
+    '..wwwwwwwwwwwww...',
+    '.wwwwwwwwwwwwwwww.',
+    'wwwwwwwwwwwwwwwwww',
+    '.wwwwwwwwwwwwwwww.',
+    '..................',
+  ],
+  'heart': [
+    '.kk.kk.',
+    'kmmkmmk',
+    'kmmmmmk',
+    '.kmmmk.',
+    '..kmk..',
+    '...k...',
+  ],
+  'sparkle': [
+    '..v..',
+    '..v..',
+    'vvyvv',
+    '..v..',
+    '..v..',
+  ],
+  'moon': [
+    '..kkkk..',
+    '.kvvvk..',
+    'kvvvk...',
+    'kvvk....',
+    'kvvk....',
+    'kvvvk...',
+    '.kvvvk..',
+    '..kkkk..',
+  ],
+  'i-gyul': [
+    '......kk....',
+    '.....kbkkk..',
+    '....kkbkggk.',
+    '..kkoobkkk..',
+    '.kooooooOOk.',
+    'koooooooOhOk',
+    'kooooooooOOk',
+    'kooooooooOOk',
+    'kdooooooooOk',
+    '.kddoooooOk.',
+    '..kkddddkk..',
+    '....kkkk....',
+  ],
+  'i-star': [
+    '.....kk.....',
+    '.....kyk....',
+    '....kyvyk...',
+    'kkkkkyyyykkk',
+    'kyyyyyvyyyYk',
+    '.kyyyyyyyYk.',
+    '..kyyyyyYk..',
+    '..kyyyyyYk..',
+    '.kyyyYkyyYk.',
+    '.kyYkk.kkYk.',
+    'kYkk.....kk.',
+    'kk..........',
+  ],
+  'i-pencil': [
+    '..........kk',
+    '.........kxk',
+    '........kttk',
+    '.......kttk.',
+    '......kyyk..',
+    '.....kyyk...',
+    '....kyyk....',
+    '...kyyk.....',
+    '..kssk......',
+    '.kppk.......',
+    'kppk........',
+    'kkk.........',
+  ],
+  'i-house': [
+    '.....kk.....',
+    '....krrk.kk.',
+    '...krrrrkBk.',
+    '..krrrrrrkk.',
+    '.krrrrrrrrk.',
+    'kRRRRRRRRRRk',
+    '.kcccccccck.',
+    '.kclkcckbck.',
+    '.kckkcckbck.',
+    '.kccccckbck.',
+    '.kkkkkkkkkk.',
+    '............',
+  ],
+};
+
+export function spriteSize(name) {
+  const rows = SPRITES[name];
+  return rows ? { w: rows[0].length, h: rows.length } : { w: 0, h: 0 };
+}
+
+/**
+ * ctx에 스프라이트를 찍는다 (논리 픽셀 좌표).
+ * @param {object} [o]
+ * @param {boolean} [o.flip] 좌우 반전
+ * @param {object} [o.swap] 팔레트 글자 바꾸기 (예: NIGHT_SWAP)
+ */
+export function drawSprite(ctx, name, x, y, { flip = false, swap = null } = {}) {
+  const rows = SPRITES[name];
+  if (!rows) return;
+  const w = rows[0].length;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    for (let c = 0; c < w; c++) {
+      let ch = row[c];
+      if (ch === '.') continue;
+      if (swap && swap[ch]) ch = swap[ch];
+      ctx.fillStyle = PALETTE[ch];
+      ctx.fillRect(x + (flip ? w - 1 - c : c), y + r, 1, 1);
+    }
+  }
+}
+
+/**
+ * 스프라이트 하나를 <canvas>로 — 페이지 제목 옆 아이콘 등.
+ * 크기는 CSS가 정수배로 키운다 (image-rendering: pixelated).
+ */
+export function sprite(name, { scale = 3, className = '', label = '' } = {}) {
+  const { w, h } = spriteSize(name);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  canvas.className = `px-sprite ${className}`.trim();
+  canvas.style.width = `${w * scale}px`;
+  canvas.style.height = `${h * scale}px`;
+  if (label) { canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', label); }
+  else canvas.setAttribute('aria-hidden', 'true');
+  const ctx = canvas.getContext('2d');
+  if (ctx) drawSprite(ctx, name, 0, 0);
+  return canvas;
+}

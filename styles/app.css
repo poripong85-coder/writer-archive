@@ -94,41 +94,7 @@ a { color: var(--peel-600); }
 :root[data-theme="dark"] a, :root.dark a { color: var(--peel-300); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
-/* ---------- layout ---------- */
-.app {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  height: 100%;
-  max-width: 780px;
-  margin: 0 auto;
-  background: var(--bg);
-  position: relative;
-}
-@media (min-width: 800px) {
-  body { background: var(--bg-alt); }
-  .app { border-inline: 1px solid var(--line-soft); }
-}
-
-.topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  border-bottom: 1px solid var(--line-soft);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(12px);
-  position: sticky; top: 0; z-index: 20;
-}
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.brand-mark { font-size: 22px; line-height: 1; filter: saturate(1.1); }
-.brand-text { display: flex; flex-direction: column; min-width: 0; }
-.brand-text strong { font-size: 16px; letter-spacing: -.02em; }
-.brand-text em {
-  font-style: normal; font-size: 12px; color: var(--text-dim);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.topbar-actions { display: flex; gap: 4px; }
-
+/* ---------- 조각 화면 공통 ---------- */
 .icon-btn {
   display: grid; place-items: center;
   width: 38px; height: 38px; padding: 0;
@@ -139,27 +105,8 @@ a { color: var(--peel-600); }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
 .icon-btn svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-.main { overflow: hidden; position: relative; min-height: 0; }
 .view { height: 100%; display: flex; flex-direction: column; min-height: 0; }
 .scroll { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; flex: 1; min-height: 0; }
-
-.tabbar {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--line-soft);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px);
-  padding-bottom: var(--safe-b);
-  z-index: 20;
-}
-.tab {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 8px 0 7px; border: 0; background: none; cursor: pointer;
-  color: var(--text-mute); font-size: 11px; font-weight: 600; letter-spacing: -.01em;
-  transition: color .15s;
-}
-.tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.tab[aria-selected="true"] { color: var(--accent); }
-.tab[aria-selected="true"] svg { stroke-width: 2; }
 
 /* ---------- today ---------- */
 .day-banner {
@@ -542,4 +489,35 @@ a { color: var(--peel-600); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---------- 권한·상태 안내 ---------- */
+.denied-note {
+  margin: 0 12px 12px; padding: 12px 14px; border-radius: 12px;
+  background: var(--surface-2); border: 1px dashed var(--line);
+  display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-dim);
+}
+.denied-note strong { color: var(--text); font-size: 14px; }
+.composer.busy .send-btn { opacity: .5; }
+.photo-missing {
+  display: grid; place-items: center; min-height: 80px; padding: 8px;
+  background: var(--surface-2); color: var(--text-mute); font-size: 11.5px;
+}
+.entry-star:is(span) { cursor: default; opacity: 1; }
+.sheet-note { margin: 0 0 14px; color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.sheet-card { margin-bottom: 12px; }
+.sheet-actions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.btn.wide { width: 100%; padding: 10px; }
+.field {
+  width: 100%; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--text); padding: 10px 12px; font: inherit;
+}
+.field:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea.field { resize: vertical; line-height: 1.6; }
+.field.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.setting-text { min-width: 0; }
+.setting-controls { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 480px) {
+  .setting-row { flex-direction: column; align-items: stretch; }
+  .setting-controls { justify-content: flex-start; }
 }

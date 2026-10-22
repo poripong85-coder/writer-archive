@@ -1,129 +1,79 @@
-// 앱 상태 + 액션. 뷰는 이 곳만 바라보고, 변경되면 'change' 이벤트로 다시 그린다.
+// 앱 상태. 화면은 여기만 바라보고, 바뀌면 'change' 이벤트로 다시 그린다.
 
-import * as db from './db.js';
-import { runRollover } from './archive.js';
-import { dayKeyOf, uid } from './util.js';
-import { releaseImages } from './media.js';
+import { dayKeyOf } from './util.js';
+
+export const ROUTES = ['home', 'intro', 'fragments', 'factory', 'stay'];
 
 const listeners = new Set();
 
+function lsGet(key, fallback) {
+  try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* 저장 못 해도 동작은 한다 */ }
+}
+
 export const state = {
-  ready: false,
-  view: 'today',            // today | calendar | fragments
+  route: 'home',
+  env: null,          // detectEnv() 결과
+  books: null,        // { public, mine }
+  pages: null,        // createPages()
+  activeBook: 'public',
+  bookTab: { public: 'calendar', mine: 'today' },
   todayKey: dayKeyOf(),
-  entriesByDay: new Map(),  // dayKey -> entries[]
-  archives: new Map(),      // dayKey -> archive record
   calendarMonth: (() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })(),
-  selectedDay: null,
   query: '',
   activeTag: null,
-  editingId: null,
-  theme: localStorage.getItem('gyul.theme') || 'auto',
+  theme: lsGet('gyul.theme', 'auto'),
 };
+
+export const storage = { get: lsGet, set: lsSet };
 
 export function subscribe(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-export function emit(reason = 'change') {
-  for (const fn of listeners) fn(reason);
+export function emit(reason = 'change', detail) {
+  for (const fn of listeners) fn(reason, detail);
 }
 
-export function entriesOf(dayKey) {
-  return state.entriesByDay.get(dayKey) || [];
+export function book(key = state.activeBook) {
+  return state.books?.[key] || null;
 }
 
-export function todayEntries() {
-  return entriesOf(state.todayKey);
+/* ---------- 라우팅 ---------- */
+
+export function go(route, { replace = false } = {}) {
+  if (!ROUTES.includes(route)) route = 'home';
+  if (state.route === route) return;
+  state.route = route;
+  const hash = route === 'home' ? '' : `#${route}`;
+  try {
+    if (replace) history.replaceState(null, '', hash || location.pathname + location.search);
+    else history.pushState(null, '', hash || location.pathname + location.search);
+  } catch { /* 액자 안에서 막혀도 화면 전환은 된다 */ }
+  emit('route');
 }
 
-export function isSealed(dayKey) {
-  return state.archives.has(dayKey);
+export function routeFromHash() {
+  const h = (location.hash || '').replace(/^#/, '');
+  return ROUTES.includes(h) ? h : 'home';
 }
 
-export function allDayKeys() {
-  return [...state.entriesByDay.keys()].sort().reverse();
+/* ---------- 기록장 ---------- */
+
+export function setActiveBook(key) {
+  if (state.activeBook === key) return;
+  state.activeBook = key;
+  state.query = '';
+  state.activeTag = null;
+  emit('book');
 }
 
-export async function reload() {
-  const [byDay, archives] = await Promise.all([db.entriesByDay(), db.allArchives()]);
-  state.entriesByDay = byDay;
-  state.archives = new Map(archives.map((a) => [a.dayKey, a]));
-  state.todayKey = dayKeyOf();
-}
-
-export async function init() {
-  await db.openDb();
-  await runRollover();
-  await reload();
-  state.ready = true;
-  emit('init');
-}
-
-/* ---------- 액션 ---------- */
-
-export async function addEntry({ text = '', images = [] }) {
-  const trimmed = text.trim();
-  if (!trimmed && !images.length) return null;
-  const now = Date.now();
-  const entry = {
-    id: uid(),
-    dayKey: dayKeyOf(new Date(now)),
-    createdAt: now,
-    updatedAt: now,
-    text: trimmed,
-    images,
-    starred: false,
-  };
-  await db.putEntry(entry);
-  await reload();
-  emit('entry:add');
-  return entry;
-}
-
-export async function updateEntry(id, patch) {
-  const entry = await db.getEntry(id);
-  if (!entry) return null;
-  const next = { ...entry, ...patch, updatedAt: Date.now() };
-  if (typeof next.text === 'string') next.text = next.text.trim();
-  await db.putEntry(next);
-  await reload();
-  emit('entry:update');
-  return next;
-}
-
-export async function toggleStar(id) {
-  const entry = await db.getEntry(id);
-  if (!entry) return;
-  await updateEntry(id, { starred: !entry.starred });
-}
-
-export async function removeEntry(id) {
-  const entry = await db.getEntry(id);
-  if (entry?.images?.length) releaseImages(entry.images);
-  await db.deleteEntry(id);
-  await reload();
-  emit('entry:remove');
-}
-
-export function setView(view) {
-  if (state.view === view) return;
-  state.view = view;
-  emit('view');
-}
-
-export function setTheme(theme) {
-  state.theme = theme;
-  localStorage.setItem('gyul.theme', theme);
-  applyTheme();
-  emit('theme');
-}
-
-export function applyTheme() {
-  const root = document.documentElement;
-  if (state.theme === 'auto') root.removeAttribute('data-theme');
-  else root.setAttribute('data-theme', state.theme);
+export function setBookTab(key, tab) {
+  state.bookTab[key] = tab;
+  emit('tab');
 }
 
 export function setQuery(q) {
@@ -133,12 +83,8 @@ export function setQuery(q) {
 
 export function setActiveTag(tag) {
   state.activeTag = state.activeTag === tag ? null : tag;
+  if (state.activeTag) state.bookTab[state.activeBook] = 'fragments';
   emit('tag');
-}
-
-export function openDay(dayKey) {
-  state.selectedDay = dayKey;
-  emit('day');
 }
 
 export function moveMonth(delta) {
@@ -152,4 +98,24 @@ export function goToMonthOfToday() {
   const d = new Date();
   state.calendarMonth = { year: d.getFullYear(), month: d.getMonth() };
   emit('month');
+}
+
+export function setToday(key) {
+  state.todayKey = key;
+  emit('day');
+}
+
+/* ---------- 테마 ---------- */
+
+export function setTheme(theme) {
+  state.theme = theme;
+  lsSet('gyul.theme', theme);
+  applyTheme();
+  emit('theme');
+}
+
+export function applyTheme() {
+  const root = document.documentElement;
+  if (state.theme === 'auto') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', state.theme);
 }

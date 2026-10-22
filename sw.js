@@ -1,24 +1,34 @@
 // 앱 셸 오프라인 캐시. 기록 자체는 IndexedDB에 있으므로 여기서는 정적 파일만 다룬다.
-const CACHE = 'gyul-shell-v1';
+const CACHE = 'gyul-shell-v2';
 const SHELL = [
   './',
   'index.html',
   'styles/app.css',
+  'styles/site.css',
+  'fonts/Galmuri11.woff2',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'app/main.js',
   'app/store.js',
+  'app/env.js',
+  'app/books.js',
+  'app/pages.js',
+  'app/clock.js',
   'app/db.js',
   'app/util.js',
   'app/ui.js',
   'app/media.js',
-  'app/archive.js',
   'app/backup.js',
+  'app/pixel.js',
+  'app/village.js',
   'app/views/today.js',
   'app/views/calendar.js',
   'app/views/fragments.js',
+  'app/pages/home.js',
+  'app/pages/page.js',
+  'app/pages/fragments-page.js',
 ];
 
 self.addEventListener('install', (e) => {

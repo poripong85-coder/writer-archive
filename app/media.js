@@ -14,6 +14,14 @@ export function imageUrl(image) {
   return url;
 }
 
+/** 저장된 사진 레코드 → <img src>. 공유 저장소 사진은 asset id, 로컬 사진은 Blob. */
+export function photoSrc(image) {
+  if (!image) return '';
+  if (image.asset) return `/_blob/${image.asset}`;
+  if (image.blob) return imageUrl(image);
+  return image.src || '';
+}
+
 export function releaseImages(images = []) {
   for (const img of images) {
     const url = urlCache.get(img.id);

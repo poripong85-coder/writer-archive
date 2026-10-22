@@ -159,3 +159,13 @@ test('formatBytes', () => {
   assert.equal(formatBytes(2048), '2KB');
   assert.equal(formatBytes(5 * 1024 * 1024), '5.0MB');
 });
+
+import { daysSealedSince } from '../app/clock.js';
+
+test('daysSealedSince는 마지막 방문일부터 어제까지 조각이 있던 날만 고른다', () => {
+  const keys = ['2026-10-18', '2026-10-20', '2026-10-21', '2026-10-22'];
+  assert.deepEqual(daysSealedSince('2026-10-20', '2026-10-22', keys), ['2026-10-20', '2026-10-21']);
+  assert.deepEqual(daysSealedSince('2026-10-22', '2026-10-22', keys), []);
+  assert.deepEqual(daysSealedSince(null, '2026-10-22', keys), []);
+  assert.deepEqual(daysSealedSince('2026-10-19', '2026-10-21', keys), ['2026-10-20']);
+});

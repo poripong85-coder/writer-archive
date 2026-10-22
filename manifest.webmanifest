@@ -1,7 +1,7 @@
 {
-  "name": "귤껍질 — 매일의 인사이트 조각",
+  "name": "귤껍질 출판사",
   "short_name": "귤껍질",
-  "description": "하루 동안 떠오른 생각과 링크, 사진을 자유롭게 적어두면 자정에 하루치 인사이트 조각으로 아카이브됩니다.",
+  "description": "매일의 인사이트 조각을 모으는 작은 출판사. 일상 조각 모음, 사부작 책공장, 시안북스테이.",
   "lang": "ko",
   "start_url": ".",
   "scope": ".",
@@ -18,7 +18,7 @@
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "오늘 기록하기", "url": "./?tab=today", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "달력 보기", "url": "./?tab=calendar" }
+    { "name": "일상 조각 모음", "url": "./#fragments", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "귤껍질 소개", "url": "./#intro" }
   ]
 }

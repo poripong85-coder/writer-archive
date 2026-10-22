@@ -1,12 +1,13 @@
-// 조각 — 봉인된 하루들을 검색하고 되짚어보는 화면.
+// 조각 — 지난 하루들을 검색하고 태그로 골라 보는 화면.
 
 import { el, clear, fragmentCard, emptyState } from '../ui.js';
 import * as store from '../store.js';
 import { entryMatches, extractTags, normalize, summarize } from '../util.js';
 
-export function createFragmentsView() {
+export function createFragmentsView(bookKey) {
+  const book = () => store.book(bookKey);
   const searchInput = el('input', {
-    type: 'search', placeholder: '내용이나 태그로 찾기', 'aria-label': '조각 검색',
+    id: `search-${bookKey}`, type: 'search', placeholder: '내용이나 태그로 찾기', 'aria-label': '조각 검색',
   });
   const tagRow = el('div', { class: 'tag-row' });
   const toolbar = el('div', { class: 'frag-toolbar' },
@@ -22,19 +23,16 @@ export function createFragmentsView() {
 
   let syncing = false;
   searchInput.addEventListener('input', () => {
-    if (syncing) return;
-    store.setQuery(searchInput.value);
+    if (!syncing) store.setQuery(searchInput.value);
   });
 
   function topTags() {
     const counts = new Map();
-    for (const entries of store.state.entriesByDay.values()) {
-      for (const e of entries) {
-        for (const t of extractTags(e.text)) {
-          const k = t.toLowerCase();
-          const prev = counts.get(k);
-          counts.set(k, { tag: prev?.tag || t, count: (prev?.count || 0) + 1 });
-        }
+    for (const e of book()?.entries || []) {
+      for (const t of extractTags(e.text)) {
+        const k = t.toLowerCase();
+        const prev = counts.get(k);
+        counts.set(k, { tag: prev?.tag || t, count: (prev?.count || 0) + 1 });
       }
     }
     return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 14);
@@ -59,9 +57,12 @@ export function createFragmentsView() {
 
   function filtered() {
     const { query, activeTag } = store.state;
+    const b = book();
+    if (!b) return [];
+    const byDay = b.byDay();
     const out = [];
-    for (const dayKey of store.allDayKeys()) {
-      let entries = store.entriesOf(dayKey);
+    for (const dayKey of b.dayKeys()) {
+      let entries = byDay.get(dayKey) || [];
       if (activeTag) {
         const want = normalize(activeTag);
         entries = entries.filter((e) => extractTags(e.text).some((t) => normalize(t) === want));
@@ -80,7 +81,7 @@ export function createFragmentsView() {
     if (!days.length) {
       list.append(filtering
         ? emptyState('🔍', '찾는 조각이 없어요', '다른 말이나 태그로 다시 찾아보세요.')
-        : emptyState('🍊', '아직 아카이브된 조각이 없어요',
+        : emptyState('🍊', '아직 모인 조각이 없어요',
             '오늘 남긴 기록은 자정이 지나면 하루치 인사이트 조각으로 정리됩니다.'));
       return;
     }
@@ -89,8 +90,7 @@ export function createFragmentsView() {
       const total = days.reduce((n, [, e]) => n + e.length, 0);
       list.append(el('div', { class: 'section-label', text: `${days.length}일 · 조각 ${total}개` }));
     } else {
-      const all = days.flatMap(([, e]) => e);
-      const s = summarize(all);
+      const s = summarize(days.flatMap(([, e]) => e));
       list.append(el('div', {
         class: 'section-label',
         text: `${days.length}일 동안 조각 ${s.count}개 · 링크 ${s.links} · 사진 ${s.photos}`,
@@ -98,7 +98,7 @@ export function createFragmentsView() {
     }
 
     for (const [dayKey, entries] of days) {
-      list.append(fragmentCard(dayKey, entries, { sealed: store.isSealed(dayKey) }));
+      list.append(fragmentCard(dayKey, entries, { sealed: dayKey < store.state.todayKey }));
     }
   }
 
@@ -110,8 +110,5 @@ export function createFragmentsView() {
     renderList();
   }
 
-  return {
-    root, update, activate: update, deactivate() {},
-    focusSearch: () => searchInput.focus(),
-  };
+  return { root, update, activate() {}, deactivate() {}, focus: () => searchInput.focus() };
 }
