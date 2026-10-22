@@ -24,14 +24,33 @@ export async function buildBackup() {
   return { format: FORMAT, version: VERSION, exportedAt: new Date().toISOString(), entries: packed, archives };
 }
 
+/**
+ * 임베드된 iframe 안에서는 <a download> 가 동작하지 않는다.
+ * 그런 환경에서는 파일 대신 JSON을 복사해 가져가게 한다.
+ */
+export function canDownload() {
+  try {
+    return window.self === window.top;
+  } catch {
+    return false;
+  }
+}
+
+export async function backupJson() {
+  return JSON.stringify(await buildBackup());
+}
+
+export function backupFilename(now = new Date()) {
+  return `귤껍질-백업-${dayKeyOf(now)}-${pad2(now.getHours())}${pad2(now.getMinutes())}.json`;
+}
+
 export async function downloadBackup() {
   const data = await buildBackup();
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const now = new Date();
   const a = document.createElement('a');
   a.href = url;
-  a.download = `귤껍질-백업-${dayKeyOf(now)}-${pad2(now.getHours())}${pad2(now.getMinutes())}.json`;
+  a.download = backupFilename();
   document.body.append(a);
   a.click();
   a.remove();

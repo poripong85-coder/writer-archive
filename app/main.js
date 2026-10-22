@@ -2,11 +2,11 @@
 
 import * as store from './store.js';
 import { scheduleMidnight, lastSealedAt } from './archive.js';
-import { el, clear, toast, openSheet, emptyState, fragmentCard } from './ui.js';
+import { el, clear, toast, openSheet, emptyState, fragmentCard, confirmDialog } from './ui.js';
 import { createTodayView } from './views/today.js';
 import { createCalendarView } from './views/calendar.js';
 import { createFragmentsView } from './views/fragments.js';
-import { downloadBackup, restoreBackup } from './backup.js';
+import { downloadBackup, restoreBackup, canDownload, backupJson, backupFilename } from './backup.js';
 import { storageEstimate, clearAll } from './db.js';
 import { formatBytes, formatDayShort, relativeDayLabel, untilMidnightLabel } from './util.js';
 
@@ -149,14 +149,23 @@ function openSettings() {
     const backupRow = el('div', { class: 'setting-row' },
       el('div', {},
         el('div', { class: 'label', text: '백업' }),
-        el('div', { class: 'desc', text: '사진까지 포함해 JSON 한 파일로 내보내고 되돌립니다' }),
+        el('div', {
+          class: 'desc',
+          text: canDownload()
+            ? '사진까지 포함해 JSON 한 파일로 내보내고 되돌립니다'
+            : '사진까지 포함한 JSON을 복사해 두세요. 파일에서 되돌리는 건 그대로 됩니다',
+        }),
       ),
       el('div', { style: 'display:flex;gap:6px' },
         el('button', {
           class: 'btn', type: 'button', text: '내보내기',
           onclick: async () => {
-            const n = await downloadBackup();
-            toast(`${n}개 조각을 내보냈어요`);
+            if (canDownload()) {
+              const n = await downloadBackup();
+              toast(`${n}개 조각을 내보냈어요`);
+            } else {
+              showCopyBackup();
+            }
           },
         }),
         el('button', { class: 'btn', type: 'button', text: '되돌리기', onclick: () => fileInput.click() }),
@@ -172,7 +181,7 @@ function openSettings() {
       el('button', {
         class: 'btn danger', type: 'button', text: '모두 지우기',
         onclick: async () => {
-          if (!confirm('모든 조각을 지울까요? 되돌릴 수 없어요.')) return;
+          if (!await confirmDialog('모든 조각을 지울까요? 되돌릴 수 없어요.', { confirmText: '모두 지우기' })) return;
           await clearAll();
           await store.reload();
           store.emit('clear');
@@ -182,6 +191,46 @@ function openSettings() {
     );
 
     body.append(themeRow, archiveRow, storageRow, backupRow, dangerRow);
+  });
+}
+
+/** 다운로드가 막힌 환경에서 백업 JSON을 복사해 가져가는 창 */
+function showCopyBackup() {
+  openSheet('백업 복사', async (body) => {
+    body.append(el('p', {
+      style: 'margin:0 0 10px;color:var(--text-dim);font-size:13px',
+      text: '여기서는 파일로 내려받을 수 없어요. 아래 내용을 통째로 복사해 텍스트 파일로 저장해두면, 나중에 되돌리기로 그대로 불러올 수 있어요.',
+    }));
+    const area = el('textarea', {
+      readonly: true, rows: '8', 'aria-label': '백업 JSON',
+      style: 'width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;'
+           + 'border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface-2);'
+           + 'color:var(--text);resize:vertical',
+    });
+    area.value = '백업을 만드는 중…';
+    body.append(area);
+
+    const name = el('div', { class: 'desc', style: 'margin-top:8px', text: '' });
+    const copyBtn = el('button', {
+      class: 'btn primary', type: 'button', style: 'width:100%;margin-top:10px', text: '전체 복사',
+      disabled: true,
+    });
+    body.append(copyBtn, name);
+
+    const json = await backupJson();
+    area.value = json;
+    name.textContent = `${backupFilename()} · ${formatBytes(new Blob([json]).size)}`;
+    copyBtn.disabled = false;
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(json);
+        toast('복사했어요');
+      } catch {
+        area.focus();
+        area.select();
+        toast('길게 눌러 직접 복사해주세요');
+      }
+    });
   });
 }
 
@@ -239,7 +288,7 @@ if (views[wantedTab]) store.state.view = wantedTab;
   if (navigator.storage?.persist && !(await navigator.storage.persisted?.())) {
     navigator.storage.persist().catch(() => {});
   }
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && canDownload()) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 })();

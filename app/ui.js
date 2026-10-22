@@ -75,6 +75,49 @@ export function openSheet(title, buildBody, { onClose } = {}) {
   return close;
 }
 
+/* ---------- 확인 다이얼로그 ---------- */
+
+/**
+ * 브라우저 confirm() 대신 쓰는 확인창.
+ * 임베드된 환경에서는 네이티브 confirm()이 즉시 false를 돌려주기 때문에
+ * 삭제 같은 동작이 조용히 무시된다. 그래서 확인 단계를 페이지 안에 둔다.
+ * @returns {Promise<boolean>}
+ */
+export function confirmDialog(message, { confirmText = '삭제', cancelText = '취소', danger = true } = {}) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (answer) => {
+      if (settled) return;
+      settled = true;
+      backdrop.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(answer);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') finish(false);
+      if (e.key === 'Enter') finish(true);
+    };
+    const okBtn = el('button', {
+      class: `btn${danger ? ' danger' : ' primary'}`, type: 'button', text: confirmText,
+      onclick: () => finish(true),
+    });
+    const dialog = el('div', { class: 'confirm', role: 'alertdialog', 'aria-modal': 'true' },
+      el('p', { class: 'confirm-text', text: message }),
+      el('div', { class: 'confirm-actions' },
+        el('button', { class: 'btn', type: 'button', text: cancelText, onclick: () => finish(false) }),
+        okBtn,
+      ),
+    );
+    const backdrop = el('div', {
+      class: 'sheet-backdrop confirm-backdrop',
+      onclick: (e) => { if (e.target === backdrop) finish(false); },
+    }, dialog);
+    document.getElementById('overlays').append(backdrop);
+    document.addEventListener('keydown', onKey);
+    okBtn.focus();
+  });
+}
+
 /* ---------- 라이트박스 ---------- */
 
 export function openLightbox(images, index = 0) {
@@ -169,7 +212,7 @@ export function entryBubble(entry, { onEdit } = {}) {
     el('button', {
       type: 'button', text: '삭제',
       onclick: async () => {
-        if (!confirm('이 조각을 지울까요?')) return;
+        if (!await confirmDialog('이 조각을 지울까요?')) return;
         await store.removeEntry(entry.id);
         toast('삭제했어요');
       },
