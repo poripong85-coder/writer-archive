@@ -1,5 +1,5 @@
 // 앱 셸 오프라인 캐시. 기록 자체는 IndexedDB에 있으므로 여기서는 정적 파일만 다룬다.
-const CACHE = 'gyul-shell-v2';
+const CACHE = 'gyul-shell-v3';
 const SHELL = [
   './',
   'index.html',
@@ -11,6 +11,10 @@ const SHELL = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'app/main.js',
+  'app/config.js',
+  'app/supa.js',
+  'app/auth.js',
+  'vendor/supabase-2.117.3.js',
   'app/store.js',
   'app/env.js',
   'app/books.js',

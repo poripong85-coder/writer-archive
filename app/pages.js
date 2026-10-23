@@ -19,6 +19,7 @@ export function createPages(env) {
   const listeners = new Set();
   const unsubs = [];
   const canEdit = env.mode === 'local' || env.me.isOwner;
+  let reloadWeb = null;
 
   const emit = (key) => { for (const fn of listeners) fn(key); };
 
@@ -30,6 +31,23 @@ export function createPages(env) {
           () => { docs.set(key, null); emit(key); },
         ));
       }
+    } else if (env.mode === 'web') {
+      const load = async () => {
+        const { data, error } = await env.sb.from('pages').select('*');
+        const rows = error ? [] : data;
+        for (const key of PAGE_KEYS) docs.set(key, clean(rows.find((r) => r.key === key) ? {
+          lead: rows.find((r) => r.key === key).lead,
+          body: rows.find((r) => r.key === key).body,
+          updatedAt: rows.find((r) => r.key === key).updated_at,
+        } : null));
+        PAGE_KEYS.forEach(emit);
+      };
+      load();
+      const ch = env.sb.channel('live-pages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pages' }, () => load())
+        .subscribe();
+      unsubs.push(() => env.sb.removeChannel(ch));
+      reloadWeb = load;
     } else if (env.mode === 'local') {
       Promise.all(PAGE_KEYS.map(async (key) => {
         docs.set(key, clean(await getMeta(`page:${key}`, null)));
@@ -43,6 +61,12 @@ export function createPages(env) {
   async function save(key, { lead, body }) {
     const doc = { lead: lead.trim(), body: body.trim(), updatedAt: Date.now() };
     if (env.mode === 'cloud') await env.db.doc(`pages/${key}`).set(doc);
+    else if (env.mode === 'web') {
+      const { error } = await env.sb.from('pages').upsert(
+        { key, lead: doc.lead, body: doc.body, updated_at: doc.updatedAt }, { onConflict: 'key' });
+      if (error) throw new Error('저장하지 못했어요. 편집장 계정으로 로그인했는지 확인해 주세요.');
+      await reloadWeb?.();
+    }
     else if (env.mode === 'local') { await setMeta(`page:${key}`, doc); docs.set(key, doc); emit(key); }
     else throw new Error('여기서는 저장할 수 없어요.');
   }

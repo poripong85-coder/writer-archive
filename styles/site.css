@@ -278,3 +278,28 @@
 @media (prefers-reduced-motion: reduce) {
   .welcome .cursor { animation: none; }
 }
+
+/* ---------- 로그인 (웹 모드) ---------- */
+.auth-btn {
+  border: 2px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  min-width: 38px; height: 38px; display: inline-grid; place-items: center;
+}
+.auth-btn:hover { border-color: var(--peel-300); }
+.auth-btn.signed-in { padding: 0; width: 38px; overflow: hidden; background: var(--peel-100); color: var(--peel-700); }
+.auth-btn.signed-in img { width: 100%; height: 100%; object-fit: cover; }
+.login-box { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; margin-inline: auto; }
+.login-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 11px 14px; border-radius: 10px; cursor: pointer;
+  font-size: 14.5px; font-weight: 700; border: 1px solid transparent;
+}
+.login-btn svg { width: 20px; height: 20px; flex: none; }
+.login-btn.kakao { background: #FEE500; color: rgba(0, 0, 0, .85); }
+.login-btn.google { background: #fff; color: #1f1f1f; border-color: #dadce0; }
+.login-btn:disabled { opacity: .6; cursor: default; }
+.login-or { text-align: center; font-size: 12px; color: var(--text-mute); margin-top: 4px; }
+.login-email { display: flex; gap: 6px; }
+.login-email .field { flex: 1; min-width: 0; }
+.account-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.account-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }

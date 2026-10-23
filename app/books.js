@@ -41,7 +41,7 @@ export function normalizeEntry(raw) {
     createdAt,
     updatedAt: Number(raw.updatedAt) || createdAt,
     text: typeof raw.text === 'string' ? raw.text : '',
-    images: Array.isArray(raw.images) ? raw.images.filter((i) => i && (i.asset || i.blob)) : [],
+    images: Array.isArray(raw.images) ? raw.images.filter((i) => i && (i.asset || i.blob || i.path)) : [],
     starred: !!raw.starred,
   };
 }
@@ -294,6 +294,163 @@ export class LocalBook extends Book {
   }
 }
 
+/* ---------- Supabase (실제 주소로 배포했을 때) ---------- */
+
+const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+
+function fromRow(r) {
+  return normalizeEntry({
+    id: r.id, dayKey: r.day_key, createdAt: Number(r.created_at), updatedAt: Number(r.updated_at),
+    text: r.text, images: r.images, starred: r.starred,
+  });
+}
+
+function toRow(e) {
+  return {
+    id: e.id, day_key: e.dayKey, created_at: e.createdAt, updated_at: e.updatedAt,
+    text: e.text, images: e.images, starred: !!e.starred,
+  };
+}
+
+export class SupaBook extends Book {
+  /**
+   * @param {object} o
+   * @param {object} o.sb          supabase 클라이언트
+   * @param {string} o.table       'fragments' | 'my_fragments'
+   * @param {boolean} o.canWrite
+   * @param {string} o.photoPrefix 저장소 폴더 ('public' | 'users/<id>')
+   * @param {boolean} [o.live]     다른 사람의 변경을 실시간으로 받을지
+   */
+  constructor(key, meta, { sb, table, canWrite, photoPrefix, live = false }) {
+    super(key, meta);
+    this.sb = sb;
+    this.table = table;
+    this.canWrite = !!canWrite;
+    this.canUpload = !!canWrite;
+    this.photoPrefix = photoPrefix;
+    this.live = live;
+    this.channel = null;
+    this.reloadTimer = null;
+  }
+
+  async start() {
+    this.status = 'loading';
+    this.emit('status');
+    await this.load('data');
+    if (this.live && !this.channel) {
+      this.channel = this.sb
+        .channel(`live-${this.table}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: this.table }, () => {
+          clearTimeout(this.reloadTimer);
+          this.reloadTimer = setTimeout(() => this.load('data'), 400);
+        })
+        .subscribe();
+    }
+  }
+
+  stop() {
+    if (this.channel) this.sb.removeChannel(this.channel);
+    this.channel = null;
+  }
+
+  async load(reason = 'data') {
+    const { data, error } = await this.sb.from(this.table)
+      .select('*').order('created_at', { ascending: false }).limit(LIVE_LIMIT);
+    if (error) {
+      this.status = 'error';
+      this.error = error;
+      this.emit('error');
+      return;
+    }
+    this.entries = data.map(fromRow).sort((a, b) => a.createdAt - b.createdAt);
+    this.status = 'ready';
+    this.emit(reason);
+  }
+
+  async write(fn) {
+    const { error } = await fn();
+    if (!error) return;
+    if (error.code === '42501' || /row-level security|permission denied/i.test(error.message || '')) {
+      this.denied = true;
+      this.canWrite = false;
+      this.canUpload = false;
+      this.emit('denied');
+      throw new WriteDeniedError();
+    }
+    throw new Error('저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+  }
+
+  async uploadPhotos(prepared = []) {
+    const out = [];
+    for (const p of prepared) {
+      const type = p.type || p.blob?.type || 'image/jpeg';
+      const path = `${this.photoPrefix}/${dayKeyOf()}/${uid('img')}.${EXT[type] || 'jpg'}`;
+      const { error } = await this.sb.storage.from('photos')
+        .upload(path, p.blob, { contentType: type, cacheControl: '31536000', upsert: false });
+      if (error) throw new Error(/row-level security/i.test(error.message || '') ? '사진을 올릴 권한이 없어요.' : '사진을 올리지 못했어요.');
+      out.push({ id: p.id || uid('img'), path, width: p.width || 0, height: p.height || 0, type, name: p.name || '사진' });
+    }
+    return out;
+  }
+
+  async removePhotos(images = []) {
+    const paths = images.map((i) => i.path).filter(Boolean);
+    if (paths.length) await this.sb.storage.from('photos').remove(paths).catch(() => {});
+  }
+
+  async add({ text, images = [] }) {
+    const uploaded = await this.uploadPhotos(images);
+    const entry = newEntry({ text, images: uploaded });
+    try {
+      await this.write(() => this.sb.from(this.table).insert(toRow(entry)));
+    } catch (err) {
+      await this.removePhotos(uploaded);
+      throw err;
+    }
+    await this.load('entry:add');
+    return entry;
+  }
+
+  async update(id, patch) {
+    const cols = { updated_at: Date.now() };
+    if (typeof patch.text === 'string') cols.text = patch.text.trim();
+    if ('starred' in patch) cols.starred = !!patch.starred;
+    await this.write(() => this.sb.from(this.table).update(cols).eq('id', id));
+    await this.load('entry:update');
+  }
+
+  async remove(id) {
+    const entry = this.get(id);
+    await this.write(() => this.sb.from(this.table).delete().eq('id', id));
+    await this.removePhotos(entry?.images);
+    await this.load('entry:remove');
+  }
+
+  async clearAll() {
+    for (const e of [...this.entries]) {
+      await this.write(() => this.sb.from(this.table).delete().eq('id', e.id));
+      await this.removePhotos(e.images);
+    }
+    await this.load('clear');
+  }
+
+  /** 백업/이전: 사진 Blob은 저장소에 올리고 경로로 바꿔 저장한다. id가 같으면 덮어쓴다. */
+  async importEntries(list = []) {
+    let n = 0;
+    for (const raw of list) {
+      const e = normalizeEntry({ ...raw, images: [] });
+      const blobs = (raw.images || []).filter((i) => i?.blob);
+      const images = blobs.length
+        ? await this.uploadPhotos(blobs.map((b) => ({ ...b, type: b.type || b.blob.type })))
+        : (raw.images || []).filter((i) => i?.path);
+      await this.write(() => this.sb.from(this.table).upsert(toRow({ ...e, images }), { onConflict: 'id' }));
+      n += 1;
+    }
+    await this.load('import');
+    return n;
+  }
+}
+
 /* ---------- 로그인이 필요한 자리 ---------- */
 
 export class SigninBook extends Book {
@@ -333,7 +490,18 @@ export function createBooks(env) {
       : new SigninBook('mine', BOOK_META.mine);
     return { public: pub, mine };
   }
-  // guest: 저장소 자체가 없다
+  if (env.mode === 'web') {
+    const pub = new SupaBook('public', BOOK_META.public, {
+      sb: env.sb, table: 'fragments', canWrite: env.me.isOwner, photoPrefix: 'public', live: true,
+    });
+    const mine = env.me.id
+      ? new SupaBook('mine', BOOK_META.mine, {
+          sb: env.sb, table: 'my_fragments', canWrite: true, photoPrefix: `users/${env.me.id}`,
+        })
+      : new SigninBook('mine', BOOK_META.mine);
+    return { public: pub, mine };
+  }
+  // guest / offline: 저장소 자체가 없다
   return {
     public: new SigninBook('public', BOOK_META.public),
     mine: new SigninBook('mine', BOOK_META.mine),

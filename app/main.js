@@ -13,6 +13,8 @@ import { createTextPage } from './pages/page.js';
 import { exportBackup, parseBackup } from './backup.js';
 import * as local from './db.js';
 import { formatBytes, relativeDayLabel, formatDayShort } from './util.js';
+import { openLoginSheet, openAccountSheet } from './auth.js';
+import { takeRememberedRoute } from './supa.js';
 
 const framed = isFramedRuntime();
 const main = document.getElementById('main');
@@ -170,7 +172,14 @@ function row(label, desc, ...controls) {
 
 function whoText(env) {
   if (!env) return ['확인하는 중', '접속 정보를 불러오고 있어요'];
-  if (env.mode === 'local') return ['이 브라우저에서 단독 실행 중', '기록은 이 기기에만 저장돼요. claude.ai에 올리면 로그인·공유 기능이 켜져요.'];
+  if (env.mode === 'local') return ['이 브라우저에서 단독 실행 중', '기록은 이 기기에만 저장돼요. app/config.js 에 Supabase를 연결하면 로그인·공유 기능이 켜져요.'];
+  if (env.mode === 'offline') return ['연결하지 못했어요', '인터넷 연결을 확인하고 새로고침해 주세요.'];
+  if (env.mode === 'web') {
+    if (!env.me.id) return ['로그인하지 않은 상태', '귤껍질 기록장은 누구나 볼 수 있어요. 로그인하면 나만의 기록장을 쓸 수 있어요.'];
+    const acct = env.me.name || env.me.email || '';
+    if (env.me.isOwner) return ['편집장(관리자)으로 접속 중', `${acct ? `${acct} · ` : ''}귤껍질 기록장과 소개 페이지를 쓰고 고칠 수 있어요.`];
+    return ['방문자로 접속 중', `${acct ? `${acct} · ` : ''}귤껍질 기록장은 읽기만 할 수 있고, 나의 기록장은 나만 볼 수 있어요.`];
+  }
   if (env.mode === 'guest') return ['로그인하지 않은 상태', 'claude.ai에 로그인하면 기록을 보고 나만의 기록장을 쓸 수 있어요.'];
   if (env.me.isOwner) return ['편집장(관리자)으로 접속 중', '귤껍질 기록장과 소개 페이지를 쓰고 고칠 수 있어요.'];
   return ['방문자로 접속 중', '귤껍질 기록장은 읽기만 할 수 있고, 나의 기록장은 나만 볼 수 있어요.'];
@@ -180,7 +189,10 @@ function openSettings() {
   openSheet('설정', async (body, close) => {
     const env = store.state.env;
     const [who, whoDesc] = whoText(env);
-    body.append(row(who, whoDesc));
+    body.append(row(who, whoDesc,
+      env?.mode === 'web' && env.me.id ? el('button', { class: 'btn', type: 'button', text: '로그아웃', onclick: () => { close(); openAccountSheet(env); } }) : null,
+      env?.mode === 'web' && !env.me.id ? el('button', { class: 'btn primary', type: 'button', text: '로그인', onclick: () => { close(); openLoginSheet(env); } }) : null,
+    ));
 
     if (!framed) {
       body.append(row('화면 테마', '기기 설정을 따르거나 직접 고를 수 있어요',
@@ -347,6 +359,35 @@ render('init');
   const env = await detectEnv();
   store.state.env = env;
   document.documentElement.dataset.mode = env.mode;
+
+  if (env.mode === 'web') {
+    // 로그인하고 돌아왔으면 원래 보던 화면으로
+    const back = takeRememberedRoute();
+    if (back && env.me.id) {
+      const r = back.replace(/^#/, '');
+      if (store.ROUTES.includes(r)) { store.state.route = r; history.replaceState(null, '', back); }
+      if (r === 'fragments' && !env.me.isOwner) store.state.activeBook = 'mine';
+    }
+    const authBtn = document.getElementById('btn-auth');
+    if (authBtn) {
+      authBtn.hidden = false;
+      if (env.me.id) {
+        authBtn.textContent = '';
+        authBtn.classList.add('signed-in');
+        authBtn.setAttribute('aria-label', '내 계정');
+        if (env.me.avatarUrl) {
+          const img = el('img', { src: env.me.avatarUrl, alt: '' });
+          img.addEventListener('error', () => { img.replaceWith(document.createTextNode((env.me.name || '나').slice(0, 1))); }, { once: true });
+          authBtn.append(img);
+        } else {
+          authBtn.textContent = (env.me.name || '나').slice(0, 1);
+        }
+        authBtn.addEventListener('click', () => openAccountSheet(env));
+      } else {
+        authBtn.addEventListener('click', () => openLoginSheet(env));
+      }
+    }
+  }
 
   const books = createBooks(env);
   store.state.books = books;

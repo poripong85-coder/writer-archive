@@ -6,6 +6,7 @@ import { createTodayView } from '../views/today.js';
 import { createCalendarView } from '../views/calendar.js';
 import { createFragmentsView } from '../views/fragments.js';
 import { sprite } from '../pixel.js';
+import { loginButtons } from '../auth.js';
 
 const TAB_LABEL = { today: '오늘 쓰기', calendar: '달력', fragments: '조각 모음' };
 const FACTORY = { today: createTodayView, calendar: createCalendarView, fragments: createFragmentsView };
@@ -112,7 +113,22 @@ export function createFragmentsPage() {
   }
 
   function signinCard(b) {
-    const guest = store.state.env?.mode === 'guest';
+    const env = store.state.env;
+    if (env?.mode === 'web') {
+      return el('div', { class: 'signin-card' },
+        sprite('house', { scale: 3 }),
+        el('h2', { class: 'px', text: '로그인하면 기록장이 생겨요' }),
+        el('p', { text: '내 기록장의 글은 나만 볼 수 있어요. 자정이 되면 하루치가 조각으로 정리돼요.' }),
+        loginButtons(env),
+      );
+    }
+    if (env?.mode === 'offline') {
+      return el('div', { class: 'signin-card' },
+        el('h2', { class: 'px', text: '연결하지 못했어요' }),
+        el('p', { text: '인터넷 연결을 확인하고 페이지를 새로고침해 주세요.' }),
+      );
+    }
+    const guest = env?.mode === 'guest';
     return el('div', { class: 'signin-card' },
       sprite('house', { scale: 3 }),
       el('h2', { class: 'px', text: b.key === 'public' ? '로그인하면 조각을 볼 수 있어요' : '로그인하면 기록장이 생겨요' }),

@@ -14,10 +14,18 @@ export function imageUrl(image) {
   return url;
 }
 
-/** 저장된 사진 레코드 → <img src>. 공유 저장소 사진은 asset id, 로컬 사진은 Blob. */
+let photoBase = '';
+
+/** 웹 모드(Supabase)에서 저장소 사진 주소의 앞부분을 정한다 */
+export function setPhotoBase(base) {
+  photoBase = String(base || '').replace(/\/$/, '');
+}
+
+/** 저장된 사진 레코드 → <img src>. claude.ai 사진은 asset id, 웹 모드는 저장소 경로, 로컬 사진은 Blob. */
 export function photoSrc(image) {
   if (!image) return '';
   if (image.asset) return `/_blob/${image.asset}`;
+  if (image.path && photoBase) return `${photoBase}/${image.path.split('/').map(encodeURIComponent).join('/')}`;
   if (image.blob) return imageUrl(image);
   return image.src || '';
 }
