@@ -2,7 +2,7 @@
 
 import { dayKeyOf } from './util.js';
 
-export const ROUTES = ['home', 'intro', 'fragments', 'factory', 'stay'];
+export const ROUTES = ['home', 'intro', 'fragments', 'factory', 'stay', 'guestbook'];
 
 const listeners = new Set();
 
@@ -18,6 +18,7 @@ export const state = {
   env: null,          // detectEnv() 결과
   books: null,        // { public, mine }
   pages: null,        // createPages()
+  guestbook: null,    // createGuestbook()
   activeBook: 'public',
   bookTab: { public: 'calendar', mine: 'today' },
   todayKey: dayKeyOf(),

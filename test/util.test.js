@@ -169,3 +169,25 @@ test('daysSealedSince는 마지막 방문일부터 어제까지 조각이 있던
   assert.deepEqual(daysSealedSince(null, '2026-10-22', keys), []);
   assert.deepEqual(daysSealedSince('2026-10-19', '2026-10-21', keys), ['2026-10-20']);
 });
+
+import { timeAgo } from '../app/util.js';
+import { validate } from '../app/guestbook.js';
+
+test('timeAgo', () => {
+  const now = new Date(2026, 9, 23, 15, 0).getTime();
+  assert.equal(timeAgo(now - 20 * 1000, now), '방금');
+  assert.equal(timeAgo(now - 5 * 60000, now), '5분 전');
+  assert.equal(timeAgo(now - 3 * 3600000, now), '3시간 전');
+  assert.equal(timeAgo(new Date(2026, 9, 22, 23, 0).getTime(), now), '어제');
+  assert.equal(timeAgo(new Date(2026, 9, 3, 9, 0).getTime(), now), '10월 3일');
+  assert.equal(timeAgo(new Date(2025, 9, 3, 9, 0).getTime(), now), '2025년 10월 3일');
+});
+
+test('방명록 입력 검사', () => {
+  assert.equal(validate({ name: '하루', message: '안녕', stamp: 'star' }), null);
+  assert.match(validate({ name: ' ', message: '안녕', stamp: 'star' }), /이름/);
+  assert.match(validate({ name: '하루', message: '  ', stamp: 'star' }), /남길 말/);
+  assert.match(validate({ name: '가'.repeat(21), message: '안녕', stamp: 'star' }), /20자/);
+  assert.match(validate({ name: '하루', message: '가'.repeat(301), stamp: 'star' }), /300자/);
+  assert.match(validate({ name: '하루', message: '안녕', stamp: 'skull' }), /스탬프/);
+});

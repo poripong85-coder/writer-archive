@@ -10,6 +10,10 @@ export const PLACES = [
   { key: 'stay', sprite: 'house', label: '시안북스테이', sub: '책과 머무는 집', door: [15, 24] },
 ];
 
+// 달 맞은편 하늘, 반짝이는 별 사이에 떠 있는 말풍선
+export const SKY_PLACE = { key: 'guestbook', sprite: 'chat', label: '와글와글 방명록', sub: '마을에 다녀간 흔적' };
+export const ALL_PLACES = [...PLACES, SKY_PLACE];
+
 // 논리 해상도별 배치. 좌표는 스프라이트 왼쪽 위.
 const LAYOUTS = {
   wide: {
@@ -18,8 +22,9 @@ const LAYOUTS = {
     spots: { fragments: [60, 38], factory: [126, 28], intro: [34, 70], stay: [136, 66] },
     trees: [[8, 52], [186, 48], [96, 30], [168, 40], [14, 88], [182, 90]],
     flowers: [[30, 100, 'flower'], [78, 96, 'flower2'], [124, 102, 'flower'], [196, 104, 'flower2'], [104, 64, 'flower'], [172, 102, 'flower2']],
-    clouds: [[20, 6], [120, 12]],
+    clouds: [[60, 8], [120, 12]],
     moon: [186, 6],
+    sky: [18, 5],
   },
   tall: {
     W: 128, H: 168, horizon: 30,
@@ -27,8 +32,9 @@ const LAYOUTS = {
     spots: { intro: [10, 56], fragments: [88, 50], factory: [26, 96], stay: [84, 106] },
     trees: [[50, 36], [2, 128], [108, 148], [64, 64]],
     flowers: [[44, 150, 'flower'], [8, 92, 'flower2'], [118, 96, 'flower'], [60, 158, 'flower2'], [100, 158, 'flower']],
-    clouds: [[6, 6], [76, 14]],
+    clouds: [[46, 4], [76, 14]],
     moon: [108, 5],
+    sky: [8, 4],
   },
 };
 
@@ -94,13 +100,15 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
   };
 
   function placeRect(p) {
-    const [x, y] = L.spots[p.key];
+    const [x, y] = p.key === SKY_PLACE.key ? L.sky : L.spots[p.key];
     const { w, h } = spriteSize(p.sprite);
     return { x, y, w, h };
   }
 
   function doorPoint(p) {
     const r = placeRect(p);
+    // 하늘 말풍선을 고르면 펫은 그 아래 언덕 기슭까지 가서 올려다본다
+    if (p.key === SKY_PLACE.key) return { x: r.x + Math.floor(r.w / 2), y: L.horizon + 10 };
     return { x: r.x + p.door[0], y: Math.min(L.H - 4, r.y + p.door[1] + 2) };
   }
 
@@ -257,6 +265,18 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
     if (night) ctx.drawImage(get('moon'), L.moon[0], L.moon[1]);
     for (const c of clouds) ctx.drawImage(get('cloud'), Math.round(c.x), c.y);
 
+    // 와글와글 말풍선 — 둥실둥실, 둘레에서 별이 번갈아 반짝인다
+    {
+      const r = placeRect(SKY_PLACE);
+      const active = hover === SKY_PLACE.key || selected === SKY_PLACE.key;
+      const bob = reducedMotion ? 0 : (tick % (active ? 8 : 20) < (active ? 4 : 10) ? 0 : 1);
+      const twinkles = [[-5, 3], [r.w + 2, 1], [r.w - 2, r.h + 1], [1, r.h + 2]];
+      twinkles.forEach(([dx, dy], i) => {
+        if (active || reducedMotion || (tick + i * 7) % 28 < 16) ctx.drawImage(get('twinkle'), r.x + dx, r.y + dy);
+      });
+      ctx.drawImage(get(SKY_PLACE.sprite), r.x, r.y + bob);
+    }
+
     // 건물 — 뒤(위)에 있는 것부터
     const order = [...PLACES].sort((a, b) => (placeRect(a).y + placeRect(a).h) - (placeRect(b).y + placeRect(b).h));
     const petBase = pet.y;
@@ -286,7 +306,7 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
     }
 
     // 선택 커서 ▼ (다마고치 메뉴처럼)
-    if (selected) {
+    if (selected && selected !== SKY_PLACE.key) {
       const p = PLACES.find((q) => q.key === selected);
       const r = placeRect(p);
       const bob = tick % 12 < 6 ? 0 : 1;
@@ -331,9 +351,9 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
   function hitTest(lx, ly) {
     const pr = { x: pet.x - 6, y: pet.y - 11, w: 12, h: 12 };
     if (lx >= pr.x && lx <= pr.x + pr.w && ly >= pr.y && ly <= pr.y + pr.h) return 'pet';
-    for (const p of [...PLACES].reverse()) {
+    for (const p of [...ALL_PLACES].reverse()) {
       const r = placeRect(p);
-      if (lx >= r.x && lx < r.x + r.w && ly >= r.y && ly < r.y + r.h) return p.key;
+      if (lx >= r.x - 1 && lx < r.x + r.w + 1 && ly >= r.y - 1 && ly < r.y + r.h + 1) return p.key;
     }
     return null;
   }
@@ -372,14 +392,14 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
     size: () => ({ W: L.W, H: L.H }),
     /** 간판 위치 (장면 대비 %) */
     signPositions() {
-      return PLACES.map((p) => {
+      return ALL_PLACES.map((p) => {
         const r = placeRect(p);
         return { ...p, left: ((r.x + r.w / 2) / L.W) * 100, top: ((r.y + r.h + 1) / L.H) * 100 };
       });
     },
     select(key) {
       selected = key;
-      const p = PLACES.find((q) => q.key === key);
+      const p = ALL_PLACES.find((q) => q.key === key);
       if (p) { pet.target = doorPoint(p); pet.pause = 0; }
       else { pet.target = null; pet.pause = 10; }
       onSelect?.(key);

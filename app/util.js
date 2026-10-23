@@ -251,3 +251,17 @@ export function highlightOf(entries = []) {
   if (!text) return (source.images || []).length ? '사진 조각' : '';
   return text.length > 60 ? `${text.slice(0, 59)}…` : text;
 }
+
+/** '방금' · '5분 전' · '3시간 전' · '어제' · '10월 3일' · '2025년 10월 3일' */
+export function timeAgo(ts, now = Date.now()) {
+  const diff = Math.max(0, now - ts);
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return '방금';
+  if (min < 60) return `${min}분 전`;
+  const d = new Date(ts), n = new Date(now);
+  const dayGap = daysBetween(dayKeyOf(d), dayKeyOf(n));
+  if (dayGap === 0) return `${Math.floor(min / 60)}시간 전`;
+  if (dayGap === 1) return '어제';
+  if (d.getFullYear() === n.getFullYear()) return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}

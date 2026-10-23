@@ -10,6 +10,8 @@ import { sprite } from './pixel.js';
 import { createHomePage } from './pages/home.js';
 import { createFragmentsPage } from './pages/fragments-page.js';
 import { createTextPage } from './pages/page.js';
+import { createGuestbookPage } from './pages/guestbook-page.js';
+import { createGuestbook } from './guestbook.js';
 import { exportBackup, parseBackup } from './backup.js';
 import * as local from './db.js';
 import { formatBytes, relativeDayLabel, formatDayShort } from './util.js';
@@ -28,6 +30,7 @@ const pages = {
   fragments: createFragmentsPage(),
   factory: createTextPage('factory'),
   stay: createTextPage('stay'),
+  guestbook: createGuestbookPage(),
 };
 
 let mounted = null;
@@ -393,6 +396,11 @@ render('init');
   store.state.books = books;
   store.state.bookTab.public = books.public.canWrite ? 'today' : 'calendar';
   store.state.bookTab.mine = 'today';
+
+  const guestbook = createGuestbook(env);
+  store.state.guestbook = guestbook;
+  guestbook.onChange((reason) => store.emit(`guestbook:${reason}`));
+  guestbook.start();
 
   const pagesStore = createPages(env);
   store.state.pages = pagesStore;

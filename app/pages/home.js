@@ -2,15 +2,15 @@
 
 import { el, clear } from '../ui.js';
 import * as store from '../store.js';
-import { createVillage, PLACES } from '../village.js';
+import { createVillage, ALL_PLACES } from '../village.js';
 import { sprite } from '../pixel.js';
 import { untilMidnightLabel } from '../util.js';
 
-const ICON = { intro: 'i-gyul', fragments: 'i-star', factory: 'i-pencil', stay: 'i-house' };
+const ICON = { intro: 'i-gyul', fragments: 'i-star', factory: 'i-pencil', stay: 'i-house', guestbook: 'i-chat' };
 
 export function createHomePage() {
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-  const canvas = el('canvas', { class: 'village', role: 'img', 'aria-label': '귤, 별, 연필, 집 모양 건물이 옹기종기 모인 귤껍질 마을' });
+  const canvas = el('canvas', { class: 'village', role: 'img', 'aria-label': '귤, 별, 연필, 집 모양 건물이 옹기종기 모인 귤껍질 마을과 하늘에 뜬 방명록 말풍선' });
   const signs = el('div', { class: 'signs' });
   const stage = el('div', { class: 'stage' }, canvas, signs);
   const status = el('div', { class: 'lcd px', 'aria-live': 'polite' });
@@ -23,14 +23,14 @@ export function createHomePage() {
   });
 
   const cycle = (d) => {
-    const i = PLACES.findIndex((p) => p.key === village.selected());
-    const next = PLACES[(i + d + PLACES.length) % PLACES.length];
+    const i = ALL_PLACES.findIndex((p) => p.key === village.selected());
+    const next = ALL_PLACES[(i + d + ALL_PLACES.length) % ALL_PLACES.length];
     village.select(next.key);
   };
   const enter = () => {
     const key = village.selected();
     if (key) store.go(key);
-    else village.select(PLACES[0].key);
+    else village.select(ALL_PLACES[0].key);
   };
 
   const buttons = el('div', { class: 'device-buttons' },
@@ -40,8 +40,8 @@ export function createHomePage() {
   );
 
   const list = el('ul', { class: 'place-list' });
-  for (const p of PLACES) {
-    list.append(el('li', {},
+  for (const p of ALL_PLACES) {
+    list.append(el('li', { class: p.key === 'guestbook' ? 'wide' : null },
       el('button', { class: 'place-card', type: 'button', onclick: () => store.go(p.key) },
         sprite(ICON[p.key], { scale: 3, className: 'place-icon' }),
         el('span', { class: 'place-text' },
@@ -63,7 +63,7 @@ export function createHomePage() {
       el('div', { class: 'lcd-row' }, status, picked),
       buttons,
     ),
-    el('p', { class: 'home-hint', text: '간판이나 건물을 누르면 들어가요. 귤을 톡 건드려 보세요.' }),
+    el('p', { class: 'home-hint', text: '간판이나 건물을 누르면 들어가요. 귤을 톡 건드려 보고, 하늘의 말풍선도 눌러보세요.' }),
     list,
   );
 
@@ -74,7 +74,7 @@ export function createHomePage() {
       signs.append(el('button', {
         class: 'sign px',
         type: 'button',
-        dataset: { key: s.key },
+        dataset: { key: s.key, left: String(s.left) },
         style: `left:${s.left}%;top:${s.top}%`,
         onclick: () => store.go(s.key),
         onmouseenter: () => village.setHover(s.key),
@@ -84,6 +84,19 @@ export function createHomePage() {
       }));
     }
     markSigns();
+    requestAnimationFrame(clampSigns);
+  }
+
+  // 가장자리 간판이 화면 밖으로 나가 잘리지 않게 안쪽으로 당긴다
+  function clampSigns() {
+    const W = stage.clientWidth;
+    if (!W) return;
+    for (const b of signs.children) {
+      const pct = parseFloat(b.dataset.left);
+      const half = b.offsetWidth / 2;
+      const px = Math.min(Math.max((pct / 100) * W, half + 4), W - half - 4);
+      b.style.left = `${px}px`;
+    }
   }
 
   function markSigns() {
@@ -91,7 +104,7 @@ export function createHomePage() {
   }
 
   function renderPick() {
-    const p = PLACES.find((q) => q.key === village.selected());
+    const p = ALL_PLACES.find((q) => q.key === village.selected());
     picked.textContent = p ? `▶ ${p.label}` : '';
   }
 
@@ -114,7 +127,8 @@ export function createHomePage() {
       renderSigns();
     }
   };
-  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => fit()) : null;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { fit(); clampSigns(); }) : null;
+  document.fonts?.ready?.then(() => clampSigns());
 
   const onKey = (e) => {
     if (store.state.route !== 'home') return;

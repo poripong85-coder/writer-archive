@@ -161,3 +161,67 @@ create policy "photos: 내 사진 지우기" on storage.objects
   for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = 'users'
          and (storage.foldername(name))[2] = auth.uid()::text);
+
+-- ========== 와글와글 방명록 (supabase/guestbook.sql 과 같은 내용) ==========
+
+create table if not exists public.guestbook (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  author_name text not null check (char_length(btrim(author_name)) between 1 and 20),
+  by_admin    boolean not null default false,
+  stamp       text not null default 'gyul' check (stamp in ('gyul', 'star', 'pencil', 'house', 'heart')),
+  message     text not null check (char_length(btrim(message)) between 1 and 300),
+  created_at  timestamptz not null default now()
+);
+create index if not exists guestbook_created_at_idx on public.guestbook (created_at desc);
+
+create or replace function public.guestbook_before_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.user_id := auth.uid();
+  if new.user_id is null then
+    raise exception '로그인이 필요해요' using errcode = '42501';
+  end if;
+  if (select count(*) from public.guestbook
+        where user_id = new.user_id and created_at > now() - interval '1 minute') >= 3 then
+    raise exception '조금 천천히 남겨주세요' using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  new.by_admin    := public.is_admin();
+  new.created_at  := now();
+  new.author_name := btrim(new.author_name);
+  new.message     := btrim(new.message);
+  return new;
+end $$;
+
+drop trigger if exists guestbook_before_insert on public.guestbook;
+create trigger guestbook_before_insert
+  before insert on public.guestbook
+  for each row execute function public.guestbook_before_insert();
+
+alter table public.guestbook enable row level security;
+
+drop policy if exists "guestbook: 누구나 읽기" on public.guestbook;
+create policy "guestbook: 누구나 읽기" on public.guestbook
+  for select to anon, authenticated using (true);
+
+drop policy if exists "guestbook: 로그인하면 쓰기" on public.guestbook;
+create policy "guestbook: 로그인하면 쓰기" on public.guestbook
+  for insert to authenticated with check (user_id = auth.uid());
+
+drop policy if exists "guestbook: 본인이나 편집장이 지우기" on public.guestbook;
+create policy "guestbook: 본인이나 편집장이 지우기" on public.guestbook
+  for delete to authenticated using (user_id = auth.uid() or public.is_admin());
+
+grant select on public.guestbook to anon, authenticated;
+grant insert, delete on public.guestbook to authenticated;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and tablename = 'guestbook') then
+    alter publication supabase_realtime add table public.guestbook;
+  end if;
+end $$;

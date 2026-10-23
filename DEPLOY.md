@@ -23,6 +23,9 @@
 | `my_fragments` | 나의 기록장 | 본인만 읽고 쓰기 (편집장도 못 봄) |
 | `admins` | 편집장 목록 | SQL Editor에서만 추가 |
 | `photos` 저장소 | 사진 | 편집장은 `public/`, 각자는 `users/<내 id>/`에만 올림 |
+| `guestbook` | 와글와글 방명록 | 누구나 읽기 · 로그인하면 쓰기 · 본인/편집장 지우기 |
+
+> 이미 `schema.sql`을 실행한 뒤 방명록이 추가됐다면 [`supabase/guestbook.sql`](supabase/guestbook.sql)만 실행하면 됩니다.
 
 ## 2. 사이트 주소 알려주기 (1분)
 
