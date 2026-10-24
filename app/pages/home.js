@@ -10,7 +10,7 @@ const ICON = { intro: 'i-gyul', fragments: 'i-star', factory: 'i-pencil', stay: 
 
 export function createHomePage() {
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-  const canvas = el('canvas', { class: 'village', role: 'img', 'aria-label': '귤, 별, 연필, 집 모양 건물이 옹기종기 모인 귤껍질 마을과 둥실 뜬 방명록 말풍선' });
+  const canvas = el('canvas', { class: 'village', role: 'img', 'aria-label': '귤, 별, 연필, 집 모양 건물이 옹기종기 모인 귤껍질 마을과 하늘에 뜬 방명록 말풍선' });
   const signs = el('div', { class: 'signs' });
   const stage = el('div', { class: 'stage' }, canvas, signs);
   const status = el('div', { class: 'lcd px', 'aria-live': 'polite' });
@@ -20,7 +20,7 @@ export function createHomePage() {
     reducedMotion: reduced,
     onEnter: (key) => store.go(key),
     onSelect: () => { markSigns(); renderPick(); },
-    onStarLand: () => showLcdMessage('⭐ 방명록 고마워요!'),
+    onStarLand: (kind) => showLcdMessage(kind === 'sun' ? '☀️ 햇살 조각 고마워요!' : '⭐ 별빛 조각 고마워요!'),
   });
 
   const cycle = (d) => {
@@ -64,7 +64,7 @@ export function createHomePage() {
       el('div', { class: 'lcd-row' }, status, picked),
       buttons,
     ),
-    el('p', { class: 'home-hint', text: '간판이나 건물을 누르면 들어가요. 귤을 톡 건드려 보고, 둥실 뜬 말풍선도 눌러보세요.' }),
+    el('p', { class: 'home-hint', text: '간판이나 건물을 누르면 들어가요. 귤을 톡 건드려 보고, 하늘의 말풍선도 눌러보세요.' }),
     list,
   );
 
@@ -160,7 +160,8 @@ export function createHomePage() {
       clearInterval(tick);
       tick = setInterval(renderStatus, 30000);
       document.addEventListener('keydown', onKey);
-      if (store.takeStarDrop()) setTimeout(() => village.dropStar(), 700);
+      const gift = store.takeStarDrop();
+      if (gift) setTimeout(() => village.dropPiece(gift), 700);
     },
     deactivate() {
       village.stop();

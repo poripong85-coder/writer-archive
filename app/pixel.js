@@ -35,6 +35,9 @@ export const PALETTE = {
 /** 밤에는 창문에 불이 켜진다 */
 export const NIGHT_SWAP = { u: 'l' };
 
+/** 저녁 해는 노을빛으로 */
+export const DUSK_SUN_SWAP = { y: 'o', v: 'O', Y: 'd', O: 'o' };
+
 export const SPRITES = {
   'gyul': [
     '............kk............',
@@ -361,6 +364,31 @@ export const SPRITES = {
     '.kyyYk.',
     'kyYkkYk',
     'kk...kk',
+  ],
+  'sun': [
+    '.......O.......',
+    '..O....O....O..',
+    '...O.......O...',
+    '.....ddddd.....',
+    '....dyyyyyd....',
+    '...dyvvyyyyd...',
+    'OO.dyvyyyyyd.OO',
+    '...dyyyyyyyd...',
+    '...dyyyyyyYd...',
+    '....dyyyYYd....',
+    '.....ddddd.....',
+    '...O.......O...',
+    '..O....O....O..',
+    '.......O.......',
+  ],
+  'mini-sun': [
+    '...o...',
+    '.o.Y.o.',
+    '..YyY..',
+    'oYyvyYo',
+    '..YyY..',
+    '.o.Y.o.',
+    '...o...',
   ],
 };
 

@@ -1,7 +1,7 @@
 // 귤껍질 마을 — 다마고치처럼 작은 도트 세상. 캔버스는 그림만 그리고,
 // 클릭할 수 있는 간판은 HTML 버튼이 위에 얹혀서 담당한다(키보드·스크린리더용).
 
-import { drawSprite, spriteSize, NIGHT_SWAP } from './pixel.js';
+import { drawSprite, spriteSize, NIGHT_SWAP, DUSK_SUN_SWAP } from './pixel.js';
 
 export const PLACES = [
   { key: 'intro', sprite: 'gyul', label: '귤껍질 소개', sub: '출판사 이야기', door: [14, 22] },
@@ -10,7 +10,7 @@ export const PLACES = [
   { key: 'stay', sprite: 'house', label: '시안북스테이', sub: '책과 머무는 집', door: [15, 24] },
 ];
 
-// 마을 왼쪽 위(나무가 있던 자리)에 둥실 떠 있는 말풍선 — 둘레에서 작은 별이 반짝인다
+// 하늘 왼쪽(해·달 맞은편)에 둥실 떠 있는 말풍선 — 둘레에서 작은 별이 반짝인다
 export const SKY_PLACE = { key: 'guestbook', sprite: 'chat', label: '와글와글 방명록', sub: '마을에 다녀간 흔적' };
 export const ALL_PLACES = [...PLACES, SKY_PLACE];
 
@@ -20,21 +20,21 @@ const LAYOUTS = {
     W: 208, H: 112, horizon: 38,
     plaza: { x: 102, y: 90, rx: 24, ry: 7 },
     spots: { fragments: [60, 38], factory: [126, 28], intro: [34, 70], stay: [136, 66] },
-    trees: [[186, 48], [96, 30], [168, 40], [14, 88], [182, 90]],
+    trees: [[8, 52], [186, 48], [96, 30], [168, 40], [14, 88], [182, 90]],
     flowers: [[30, 100, 'flower'], [78, 96, 'flower2'], [124, 102, 'flower'], [196, 104, 'flower2'], [104, 64, 'flower'], [172, 102, 'flower2']],
     clouds: [[60, 8], [120, 12]],
     moon: [186, 6],
-    sky: [5, 51],
+    sky: [18, 5],
   },
   tall: {
     W: 128, H: 168, horizon: 30,
     plaza: { x: 64, y: 112, rx: 22, ry: 7 },
     spots: { intro: [10, 56], fragments: [88, 50], factory: [26, 96], stay: [84, 106] },
-    trees: [[2, 128], [108, 148], [64, 64]],
+    trees: [[50, 36], [2, 128], [108, 148], [64, 64]],
     flowers: [[44, 150, 'flower'], [8, 92, 'flower2'], [118, 96, 'flower'], [60, 158, 'flower2'], [100, 158, 'flower']],
     clouds: [[46, 4], [76, 14]],
     moon: [108, 5],
-    sky: [46, 33],
+    sky: [8, 4],
   },
 };
 
@@ -90,14 +90,14 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
 
   const pet = { x: 0, y: 0, dir: 1, frame: 0, pause: 20, target: null, hop: 0, hearts: [] };
   // 방명록을 남기고 오면: 말풍선 옆 별 하나가 포물선을 그리며 귤 머리 위로 떨어진다
-  let drop = null;   // { phase: 'fall'|'land'|'rest'|'fade', t, sx, sy, trail: [] }
+  let drop = null;   // { kind: 'sun'|'star', phase: 'fall'|'land'|'rest'|'fade', t, sx, sy, trail: [] }
   let burst = [];    // 착지할 때 튀는 반짝이
   const smoke = [];
   let clouds = [];
   let stars = [];
 
   const get = (name, opts = {}) => {
-    const key = `${name}|${opts.swap ? 'n' : 'd'}|${opts.flip ? 'f' : ''}`;
+    const key = `${name}|${opts.swap ? JSON.stringify(opts.swap) : 'd'}|${opts.flip ? 'f' : ''}`;
     if (!cache.has(key)) cache.set(key, spriteCanvas(name, opts));
     return cache.get(key);
   };
@@ -110,8 +110,8 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
 
   function doorPoint(p) {
     const r = placeRect(p);
-    // 말풍선을 고르면 펫은 그 바로 아래까지 걸어가서 올려다본다
-    if (p.key === SKY_PLACE.key) return { x: r.x + Math.floor(r.w / 2), y: Math.min(L.H - 4, r.y + r.h + 4) };
+    // 하늘 말풍선을 고르면 펫은 그 아래 언덕 기슭까지 가서 올려다본다
+    if (p.key === SKY_PLACE.key) return { x: r.x + Math.floor(r.w / 2), y: L.horizon + 10 };
     return { x: r.x + p.door[0], y: Math.min(L.H - 4, r.y + p.door[1] + 2) };
   }
 
@@ -173,7 +173,7 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
     const { plaza } = L;
     const center = { x: plaza.x, y: plaza.y };
     for (const pass of [[3, land.pathEdge], [2, land.path]]) {
-      for (const p of ALL_PLACES) {
+      for (const p of PLACES) {
         const d = doorPoint(p);
         const mid = { x: d.x, y: d.y + 2 };
         stroke(d, mid, pass[0], pass[1]);
@@ -261,6 +261,12 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
   const REST = 34;   // 머리 위에 앉아 있는 시간
   const FADE = 10;
 
+  /** 해의 왼쪽 위 좌표. 낮엔 달 자리, 저녁엔 조금 내려온다 */
+  function sunPoint() {
+    const [x, y] = L.moon;
+    return tod === 'dusk' ? { x: x - 2, y: Math.min(L.horizon - 16, y + 12) } : { x: x - 3, y: y - 2 };
+  }
+
   function headPoint() {
     const hopY = pet.hop ? Math.round(Math.sin((pet.hop / 8) * Math.PI) * 4) : 0;
     return { x: Math.round(pet.x - 3), y: Math.round(pet.y - 16 - hopY) };
@@ -296,7 +302,7 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
         pet.hop = 8;
         const h = headPoint();
         burst = [[-0.9, -1.4], [0.9, -1.4], [-1.4, -0.4], [1.4, -0.4]].map(([vx, vy]) => ({ x: h.x + 2, y: h.y + 2, vx, vy, t: 10 }));
-        onStarLand?.();
+        onStarLand?.(drop.kind);
       }
     } else if (drop.phase === 'land' && drop.t >= 8) {
       drop.phase = 'rest';
@@ -314,9 +320,10 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
     for (const b of burst) ctx.drawImage(get('twinkle'), Math.round(b.x), Math.round(b.y));
     if (!drop) return;
     if (drop.phase === 'fall') {
+      const tail = drop.kind === 'sun' ? ['#ffd23f', '#ff9b3e'] : ['#ffd23f', '#fff3b0'];
       drop.trail.forEach((p, i) => {
         ctx.globalAlpha = (i + 1) / (drop.trail.length + 2);
-        ctx.fillStyle = i % 2 ? '#fff3b0' : '#ffd23f';
+        ctx.fillStyle = tail[i % 2];
         ctx.fillRect(p.x + 3, p.y + 3, 1, 1);
         ctx.globalAlpha = 1;
       });
@@ -324,22 +331,25 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
     if (drop.phase === 'fade' && drop.t % 2) return; // 깜빡이며 사라짐
     const p = starPos();
     const bob = drop.phase === 'rest' && !reducedMotion && drop.t % 12 >= 6 ? -1 : 0;
-    ctx.drawImage(get('mini-star'), p.x, p.y + bob);
+    ctx.drawImage(get(drop.kind === 'sun' ? 'mini-sun' : 'mini-star'), p.x, p.y + bob);
   }
 
-  function dropStar() {
+  /** 낮이면 해에서 햇살 조각이, 밤이면 말풍선 둘레 별에서 별 조각이 떨어진다 */
+  function dropPiece(kind = tod === 'night' ? 'star' : 'sun') {
     const r = placeRect(SKY_PLACE);
+    const sp = sunPoint();
+    const start = kind === 'sun' ? { x: sp.x + 4, y: sp.y + 4 } : { x: r.x + r.w + 2, y: r.y + 1 };
     pet.target = null;
     pet.pause = 9999;    // 떨어지는 동안은 제자리에서 기다린다
     if (reducedMotion) {
       // 움직임 줄이기: 날아오지 않고 머리 위에 바로 앉았다가 사라진다
-      drop = { phase: 'rest', t: 0, sx: 0, sy: 0, trail: [] };
-      onStarLand?.();
+      drop = { kind, phase: 'rest', t: 0, sx: 0, sy: 0, trail: [] };
+      onStarLand?.(kind);
       draw();
       setTimeout(() => { drop = null; pet.pause = 12; draw(); }, 3500);
       return;
     }
-    drop = { phase: 'fall', t: 0, sx: r.x + r.w + 2, sy: r.y + 1, trail: [] };
+    drop = { kind, phase: 'fall', t: 0, sx: start.x, sy: start.y, trail: [] };
   }
 
   /* ---------- 그리기 ---------- */
@@ -354,6 +364,10 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
       if ((tick + s.p) % 40 < 34) { ctx.fillStyle = (s.p % 3) ? '#fff3b0' : '#ffffff'; ctx.fillRect(s.x, s.y, 1, 1); }
     }
     if (night) ctx.drawImage(get('moon'), L.moon[0], L.moon[1]);
+    else {
+      const sp = sunPoint();
+      ctx.drawImage(get('sun', { swap: tod === 'dusk' ? DUSK_SUN_SWAP : null }), sp.x, sp.y);
+    }
     for (const c of clouds) ctx.drawImage(get('cloud'), Math.round(c.x), c.y);
 
     // 와글와글 말풍선 — 둥실둥실, 둘레에서 별이 번갈아 반짝인다
@@ -502,7 +516,8 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
     selected: () => selected,
     setHover(key) { hover = key; if (reducedMotion) draw(); },
     petTap,
-    dropStar,
+    dropPiece,
+    timeOfDay: () => tod,
     dropping: () => !!drop,
     start() {
       if (running) return;

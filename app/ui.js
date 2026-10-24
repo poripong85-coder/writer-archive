@@ -83,7 +83,7 @@ export function openSheet(title, buildBody, { onClose } = {}) {
  * 삭제 같은 동작이 조용히 무시된다. 그래서 확인 단계를 페이지 안에 둔다.
  * @returns {Promise<boolean>}
  */
-export function confirmDialog(message, { confirmText = '삭제', cancelText = '취소', danger = true } = {}) {
+export function confirmDialog(message, { confirmText = '삭제', cancelText = '취소', danger = true, title = '', icon = null, className = '' } = {}) {
   return new Promise((resolve) => {
     let settled = false;
     const finish = (answer) => {
@@ -101,7 +101,9 @@ export function confirmDialog(message, { confirmText = '삭제', cancelText = '�
       class: `btn${danger ? ' danger' : ' primary'}`, type: 'button', text: confirmText,
       onclick: () => finish(true),
     });
-    const dialog = el('div', { class: 'confirm', role: 'alertdialog', 'aria-modal': 'true' },
+    const dialog = el('div', { class: `confirm ${className}`.trim(), role: 'alertdialog', 'aria-modal': 'true', 'aria-label': title || message },
+      icon ? el('div', { class: 'confirm-icon' }, icon) : null,
+      title ? el('p', { class: 'confirm-title px', text: title }) : null,
       el('p', { class: 'confirm-text', text: message }),
       el('div', { class: 'confirm-actions' },
         el('button', { class: 'btn', type: 'button', text: cancelText, onclick: () => finish(false) }),

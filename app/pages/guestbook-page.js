@@ -1,6 +1,7 @@
 // 와글와글 방명록 — 마을에 다녀간 흔적. 말풍선 벽처럼 쌓인다.
 
 import { el, clear, toast, confirmDialog } from '../ui.js';
+import { timeOfDay } from '../village.js';
 import * as store from '../store.js';
 import { sprite } from '../pixel.js';
 import { STAMPS, MAX_MESSAGE, MAX_NAME } from '../guestbook.js';
@@ -12,6 +13,13 @@ const STAMP_LABEL = { gyul: '귤', star: '별', pencil: '연필', house: '집', 
 const NAME_KEY = 'gyul.guestName';
 const STAMP_KEY = 'gyul.guestStamp';
 
+/** 지금 귤에게 줄 수 있는 선물 — 낮(아침·저녁)엔 햇살 조각, 밤엔 별 조각 */
+export function giftNow(date = new Date()) {
+  return timeOfDay(date) === 'night'
+    ? { kind: 'star', sprite: 'mini-star', title: '귤에게 별빛 주기', piece: '별빛 조각', when: '밤' }
+    : { kind: 'sun', sprite: 'mini-sun', title: '귤에게 햇살 주기', piece: '햇살 조각', when: '낮' };
+}
+
 /** 같은 글은 늘 같은 색·기울기 (id 해시) */
 function tone(id) {
   let h = 0;
@@ -20,6 +28,7 @@ function tone(id) {
 }
 
 export function createGuestbookPage() {
+  const giftNote = el('p', { class: 'gb-gift' });
   const compose = el('div', { class: 'gb-compose' });
   const count = el('p', { class: 'gb-count' });
   const wall = el('div', { class: 'gb-wall', 'aria-live': 'polite' });
@@ -36,6 +45,7 @@ export function createGuestbookPage() {
         el('p', { class: 'page-lead', text: '귤껍질 마을에 다녀간 흔적을 남겨주세요. 한마디면 충분해요.' }),
       ),
     ),
+    giftNote,
     compose,
     count,
     wall,
@@ -111,8 +121,7 @@ export function createGuestbookPage() {
         await gb().add({ name: nameInput.value, stamp: pickedStamp, message: msg.value });
         store.storage.set(NAME_KEY, nameInput.value.trim());
         msg.value = '';
-        store.queueStarDrop();
-        toast('방명록에 남겼어요. 마을에 들러보세요 ✨', { peel: true, ms: 3600 });
+        await offerGift();
       } catch (err) {
         toast(err?.message || '남기지 못했어요');
       } finally {
@@ -122,6 +131,38 @@ export function createGuestbookPage() {
     });
     sync();
     return form;
+  }
+
+  /** 남긴 뒤: "귤에게 햇살(별빛) 주기" YES → 마을로 가서 조각이 귤 머리 위로 떨어진다 */
+  async function offerGift() {
+    const gift = giftNow();
+    const yes = await confirmDialog(`방명록 고마워요! 마을의 귤에게 ${gift.piece}을 선물할까요?`, {
+      title: gift.title,
+      icon: sprite(gift.sprite, { scale: 5 }),
+      confirmText: 'YES',
+      cancelText: 'NO',
+      danger: false,
+      className: 'gift',
+    });
+    if (yes) {
+      store.queueStarDrop(gift.kind);
+      store.go('home');
+    } else {
+      toast('방명록에 남겼어요', { peel: true });
+    }
+  }
+
+  function renderGiftNote() {
+    const gift = giftNow();
+    clear(giftNote);
+    giftNote.append(
+      sprite(gift.sprite, { scale: 3, className: 'gb-gift-icon' }),
+      el('span', {},
+        '한마디를 남기면 마을의 귤에게 ',
+        el('strong', { text: gift.piece }),
+        `을 선물할 수 있어요. 낮에는 해에서 햇살 조각이, 밤에는 별 사이에서 별 조각이 귤 머리 위로 떨어져요.`,
+      ),
+    );
   }
 
   function renderCompose() {
@@ -231,6 +272,7 @@ export function createGuestbookPage() {
       const env = store.state.env;
       const key = `${env?.mode}|${env?.me?.id}|${!!book}|${book?.canWrite}|${book?.denied}|${book?.status === 'notready'}`;
       if (key !== composeKey) { composeKey = key; renderCompose(); }
+      renderGiftNote();
       renderWall();
     },
     activate() {},

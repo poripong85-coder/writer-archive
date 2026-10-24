@@ -385,3 +385,16 @@
 @keyframes lcd-flash { 50% { opacity: .35; } }
 .gb-home { align-self: flex-start; }
 @media (prefers-reduced-motion: reduce) { .lcd.flash { animation: none; } }
+
+/* 귤에게 선물 — 안내 문구와 YES/NO 팝업 */
+.gb-gift {
+  margin: -4px 0 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 14px;
+  background: var(--surface-2); border: 2px dashed var(--peel-300);
+  font-size: 13.5px; line-height: 1.6; color: var(--text-dim);
+}
+.gb-gift strong { color: var(--text); }
+.confirm-icon { display: grid; place-items: center; padding-top: 20px; }
+.confirm-title { margin: 12px 0 0; text-align: center; font-size: 12px; line-height: 1.5; color: var(--text); }
+.confirm.gift .confirm-text { padding-top: 8px; }
+.confirm.gift .confirm-actions .btn { font-family: var(--px-font); font-size: 12px; letter-spacing: .08em; padding: 12px; }
