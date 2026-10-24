@@ -10,7 +10,7 @@ export const PLACES = [
   { key: 'stay', sprite: 'house', label: '시안북스테이', sub: '책과 머무는 집', door: [15, 24] },
 ];
 
-// 달 맞은편 하늘, 반짝이는 별 사이에 떠 있는 말풍선
+// 마을 왼쪽 위(나무가 있던 자리)에 둥실 떠 있는 말풍선 — 둘레에서 작은 별이 반짝인다
 export const SKY_PLACE = { key: 'guestbook', sprite: 'chat', label: '와글와글 방명록', sub: '마을에 다녀간 흔적' };
 export const ALL_PLACES = [...PLACES, SKY_PLACE];
 
@@ -20,21 +20,21 @@ const LAYOUTS = {
     W: 208, H: 112, horizon: 38,
     plaza: { x: 102, y: 90, rx: 24, ry: 7 },
     spots: { fragments: [60, 38], factory: [126, 28], intro: [34, 70], stay: [136, 66] },
-    trees: [[8, 52], [186, 48], [96, 30], [168, 40], [14, 88], [182, 90]],
+    trees: [[186, 48], [96, 30], [168, 40], [14, 88], [182, 90]],
     flowers: [[30, 100, 'flower'], [78, 96, 'flower2'], [124, 102, 'flower'], [196, 104, 'flower2'], [104, 64, 'flower'], [172, 102, 'flower2']],
     clouds: [[60, 8], [120, 12]],
     moon: [186, 6],
-    sky: [18, 5],
+    sky: [5, 51],
   },
   tall: {
     W: 128, H: 168, horizon: 30,
     plaza: { x: 64, y: 112, rx: 22, ry: 7 },
     spots: { intro: [10, 56], fragments: [88, 50], factory: [26, 96], stay: [84, 106] },
-    trees: [[50, 36], [2, 128], [108, 148], [64, 64]],
+    trees: [[2, 128], [108, 148], [64, 64]],
     flowers: [[44, 150, 'flower'], [8, 92, 'flower2'], [118, 96, 'flower'], [60, 158, 'flower2'], [100, 158, 'flower']],
     clouds: [[46, 4], [76, 14]],
     moon: [108, 5],
-    sky: [8, 4],
+    sky: [46, 33],
   },
 };
 
@@ -110,8 +110,8 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
 
   function doorPoint(p) {
     const r = placeRect(p);
-    // 하늘 말풍선을 고르면 펫은 그 아래 언덕 기슭까지 가서 올려다본다
-    if (p.key === SKY_PLACE.key) return { x: r.x + Math.floor(r.w / 2), y: L.horizon + 10 };
+    // 말풍선을 고르면 펫은 그 바로 아래까지 걸어가서 올려다본다
+    if (p.key === SKY_PLACE.key) return { x: r.x + Math.floor(r.w / 2), y: Math.min(L.H - 4, r.y + r.h + 4) };
     return { x: r.x + p.door[0], y: Math.min(L.H - 4, r.y + p.door[1] + 2) };
   }
 
@@ -173,7 +173,7 @@ export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMo
     const { plaza } = L;
     const center = { x: plaza.x, y: plaza.y };
     for (const pass of [[3, land.pathEdge], [2, land.path]]) {
-      for (const p of PLACES) {
+      for (const p of ALL_PLACES) {
         const d = doorPoint(p);
         const mid = { x: d.x, y: d.y + 2 };
         stroke(d, mid, pass[0], pass[1]);

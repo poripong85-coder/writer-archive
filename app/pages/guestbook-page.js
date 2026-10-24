@@ -132,6 +132,11 @@ export function createGuestbookPage() {
       compose.append(el('p', { class: 'muted', text: '불러오는 중이에요…' }));
       return;
     }
+    if (book.status === 'notready') {
+      compose.hidden = true;
+      return;
+    }
+    compose.hidden = false;
     if (book.canWrite) {
       compose.append(buildForm());
       return;
@@ -191,6 +196,17 @@ export function createGuestbookPage() {
       count.textContent = '';
       return;
     }
+    if (book.status === 'notready') {
+      count.textContent = '';
+      wall.append(el('div', { class: 'soon' },
+        el('p', { class: 'px soon-title', text: '와글와글 방명록이 곧 문을 열어요' }),
+        el('p', { text: '말풍선을 모을 준비를 하고 있어요. 조금만 기다려 주세요!' }),
+        store.state.env?.me?.isOwner
+          ? el('p', { class: 'muted', text: '편집장에게만 보이는 안내: Supabase SQL Editor에서 supabase/guestbook.sql 을 실행하면 바로 열려요.' })
+          : null,
+      ));
+      return;
+    }
     if (book.status === 'error') {
       count.textContent = '';
       wall.append(el('p', { class: 'muted', text: '방명록을 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.' }));
@@ -213,7 +229,7 @@ export function createGuestbookPage() {
       // 쓰는 칸은 '쓸 수 있는 상태'가 바뀔 때만 다시 그린다 — 입력하던 글이 날아가지 않게
       const book = gb();
       const env = store.state.env;
-      const key = `${env?.mode}|${env?.me?.id}|${!!book}|${book?.canWrite}|${book?.denied}`;
+      const key = `${env?.mode}|${env?.me?.id}|${!!book}|${book?.canWrite}|${book?.denied}|${book?.status === 'notready'}`;
       if (key !== composeKey) { composeKey = key; renderCompose(); }
       renderWall();
     },

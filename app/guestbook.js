@@ -52,7 +52,7 @@ export function createGuestbook(env) {
   const me = env.me || {};
   const book = {
     items: [],
-    status: 'idle',          // idle | loading | ready | error | unavailable
+    status: 'idle',          // idle | loading | ready | error | unavailable | notready
     canRead: ['web', 'cloud', 'local'].includes(env.mode),
     canWrite: env.mode === 'local' || ((env.mode === 'web' || env.mode === 'cloud') && !!me.id),
     canModerate: env.mode === 'local' || !!me.isOwner,
@@ -78,7 +78,15 @@ export function createGuestbook(env) {
     const { data, error } = await env.sb.from('guestbook')
       .select('id, user_id, author_name, by_admin, stamp, message, created_at')
       .order('created_at', { ascending: false }).limit(LIST_LIMIT);
-    if (error) { book.status = 'error'; emit('error'); return; }
+    if (error) {
+      // 표가 아직 만들어지지 않았으면(guestbook.sql 미실행) 고장이 아니라 '준비 중'으로 보여준다
+      const missing = ['42P01', 'PGRST205', 'PGRST202'].includes(error.code)
+        || /does not exist|could not find the table|schema cache/i.test(error.message || '');
+      book.status = missing ? 'notready' : 'error';
+      if (missing) { book.canWrite = false; }
+      emit(missing ? 'notready' : 'error');
+      return;
+    }
     setItems(data.map((r) => ({
       id: r.id, userId: r.user_id, name: r.author_name, byAdmin: r.by_admin,
       stamp: r.stamp, message: r.message, createdAt: r.created_at,
