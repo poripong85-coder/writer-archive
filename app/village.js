@@ -74,7 +74,7 @@ function spriteCanvas(name, { swap = null, flip = false } = {}) {
   return c;
 }
 
-export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false } = {}) {
+export function createVillage(canvas, { onEnter, onSelect, onStarLand, reducedMotion = false } = {}) {
   const ctx = canvas.getContext('2d');
   let layoutKey = 'wide';
   let L = LAYOUTS.wide;
@@ -89,6 +89,9 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
   let running = false;
 
   const pet = { x: 0, y: 0, dir: 1, frame: 0, pause: 20, target: null, hop: 0, hearts: [] };
+  // 방명록을 남기고 오면: 말풍선 옆 별 하나가 포물선을 그리며 귤 머리 위로 떨어진다
+  let drop = null;   // { phase: 'fall'|'land'|'rest'|'fade', t, sx, sy, trail: [] }
+  let burst = [];    // 착지할 때 튀는 반짝이
   const smoke = [];
   let clouds = [];
   let stars = [];
@@ -237,6 +240,7 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
       }
     }
     pet.hearts = pet.hearts.filter((h) => (h.t -= 1) > 0);
+    stepDrop();
 
     // 굴뚝 연기
     const house = PLACES.find((p) => p.key === 'stay');
@@ -249,6 +253,93 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
       c.x += c.speed;
       if (c.x > L.W + 2) c.x = -20;
     }
+  }
+
+  /* ---------- 별 떨어지기 ---------- */
+
+  const FALL = 22;   // 프레임 (약 1.8초)
+  const REST = 34;   // 머리 위에 앉아 있는 시간
+  const FADE = 10;
+
+  function headPoint() {
+    const hopY = pet.hop ? Math.round(Math.sin((pet.hop / 8) * Math.PI) * 4) : 0;
+    return { x: Math.round(pet.x - 3), y: Math.round(pet.y - 16 - hopY) };
+  }
+
+  function starPos() {
+    const head = headPoint();
+    if (drop.phase !== 'fall') return head;
+    // 출발점 → 머리, 위로 볼록한 2차 곡선. 귤이 움직여도 머리를 따라간다
+    const k = Math.min(1, drop.t / FALL);
+    const e = k * k;                     // 처음엔 천천히, 떨어질수록 빠르게
+    const cx = (drop.sx + head.x) / 2;
+    const cy = Math.min(drop.sy, head.y) - 14;
+    const u = 1 - e;
+    return {
+      x: Math.round(u * u * drop.sx + 2 * u * e * cx + e * e * head.x),
+      y: Math.round(u * u * drop.sy + 2 * u * e * cy + e * e * head.y),
+    };
+  }
+
+  function stepDrop() {
+    burst = burst.filter((b) => { b.x += b.vx; b.y += b.vy; b.vy += 0.15; return (b.t -= 1) > 0; });
+    if (!drop) return;
+    drop.t += 1;
+    if (drop.phase === 'fall') {
+      const p = starPos();
+      drop.trail.push(p);
+      if (drop.trail.length > 5) drop.trail.shift();
+      if (drop.t >= FALL) {
+        drop.phase = 'land';
+        drop.t = 0;
+        drop.trail = [];
+        pet.hop = 8;
+        const h = headPoint();
+        burst = [[-0.9, -1.4], [0.9, -1.4], [-1.4, -0.4], [1.4, -0.4]].map(([vx, vy]) => ({ x: h.x + 2, y: h.y + 2, vx, vy, t: 10 }));
+        onStarLand?.();
+      }
+    } else if (drop.phase === 'land' && drop.t >= 8) {
+      drop.phase = 'rest';
+      drop.t = 0;
+    } else if (drop.phase === 'rest' && drop.t >= REST) {
+      drop.phase = 'fade';
+      drop.t = 0;
+    } else if (drop.phase === 'fade' && drop.t >= FADE) {
+      drop = null;
+      pet.pause = selected ? 9999 : 12;   // 고른 집이 없으면 다시 어슬렁
+    }
+  }
+
+  function drawDrop() {
+    for (const b of burst) ctx.drawImage(get('twinkle'), Math.round(b.x), Math.round(b.y));
+    if (!drop) return;
+    if (drop.phase === 'fall') {
+      drop.trail.forEach((p, i) => {
+        ctx.globalAlpha = (i + 1) / (drop.trail.length + 2);
+        ctx.fillStyle = i % 2 ? '#fff3b0' : '#ffd23f';
+        ctx.fillRect(p.x + 3, p.y + 3, 1, 1);
+        ctx.globalAlpha = 1;
+      });
+    }
+    if (drop.phase === 'fade' && drop.t % 2) return; // 깜빡이며 사라짐
+    const p = starPos();
+    const bob = drop.phase === 'rest' && !reducedMotion && drop.t % 12 >= 6 ? -1 : 0;
+    ctx.drawImage(get('mini-star'), p.x, p.y + bob);
+  }
+
+  function dropStar() {
+    const r = placeRect(SKY_PLACE);
+    pet.target = null;
+    pet.pause = 9999;    // 떨어지는 동안은 제자리에서 기다린다
+    if (reducedMotion) {
+      // 움직임 줄이기: 날아오지 않고 머리 위에 바로 앉았다가 사라진다
+      drop = { phase: 'rest', t: 0, sx: 0, sy: 0, trail: [] };
+      onStarLand?.();
+      draw();
+      setTimeout(() => { drop = null; pet.pause = 12; draw(); }, 3500);
+      return;
+    }
+    drop = { phase: 'fall', t: 0, sx: r.x + r.w + 2, sy: r.y + 1, trail: [] };
   }
 
   /* ---------- 그리기 ---------- */
@@ -287,6 +378,7 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
       ctx.drawImage(get(name, { flip: pet.dir < 0 }), Math.round(pet.x - 5), Math.round(pet.y - 10 - hopY));
       for (const h of pet.hearts) ctx.drawImage(get('heart'), Math.round(pet.x - 3), Math.round(pet.y - 18 - (24 - h.t) * 0.6));
       petDrawn = true;
+      if (drop?.phase !== 'fall') drawDrop();
     };
     for (const p of order) {
       const r = placeRect(p);
@@ -304,6 +396,8 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
       ctx.fillRect(Math.round(s.x), Math.round(s.y), size, size);
       ctx.globalAlpha = 1;
     }
+
+    if (drop?.phase === 'fall') drawDrop();
 
     // 선택 커서 ▼ (다마고치 메뉴처럼)
     if (selected && selected !== SKY_PLACE.key) {
@@ -400,7 +494,7 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
     select(key) {
       selected = key;
       const p = ALL_PLACES.find((q) => q.key === key);
-      if (p) { pet.target = doorPoint(p); pet.pause = 0; }
+      if (p) { pet.target = doorPoint(p); pet.pause = drop?.phase === 'fall' ? pet.pause : 0; }
       else { pet.target = null; pet.pause = 10; }
       onSelect?.(key);
       if (reducedMotion) { if (p) { const d = doorPoint(p); pet.x = d.x; pet.y = d.y; } draw(); }
@@ -408,6 +502,8 @@ export function createVillage(canvas, { onEnter, onSelect, reducedMotion = false
     selected: () => selected,
     setHover(key) { hover = key; if (reducedMotion) draw(); },
     petTap,
+    dropStar,
+    dropping: () => !!drop,
     start() {
       if (running) return;
       if (reducedMotion) { draw(); return; }

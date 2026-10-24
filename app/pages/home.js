@@ -20,6 +20,7 @@ export function createHomePage() {
     reducedMotion: reduced,
     onEnter: (key) => store.go(key),
     onSelect: () => { markSigns(); renderPick(); },
+    onStarLand: () => showLcdMessage('⭐ 방명록 고마워요!'),
   });
 
   const cycle = (d) => {
@@ -108,7 +109,16 @@ export function createHomePage() {
     picked.textContent = p ? `▶ ${p.label}` : '';
   }
 
+  let lcdHold = 0;
+  function showLcdMessage(text) {
+    status.textContent = text;
+    status.classList.add('flash');
+    clearTimeout(lcdHold);
+    lcdHold = setTimeout(() => { status.classList.remove('flash'); lcdHold = 0; renderStatus(); }, 4200);
+  }
+
   function renderStatus() {
+    if (lcdHold) return;
     const pub = store.book('public');
     const n = pub?.status === 'ready' ? pub.entriesOf(store.state.todayKey).length : null;
     status.textContent = n == null
@@ -150,6 +160,7 @@ export function createHomePage() {
       clearInterval(tick);
       tick = setInterval(renderStatus, 30000);
       document.addEventListener('keydown', onKey);
+      if (store.takeStarDrop()) setTimeout(() => village.dropStar(), 700);
     },
     deactivate() {
       village.stop();

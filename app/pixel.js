@@ -353,6 +353,15 @@ export const SPRITES = {
     '............',
     '............',
   ],
+  'mini-star': [
+    '...k...',
+    '..kyk..',
+    'kkkvykk',
+    'kyyyyYk',
+    '.kyyYk.',
+    'kyYkkYk',
+    'kk...kk',
+  ],
 };
 
 export function spriteSize(name) {

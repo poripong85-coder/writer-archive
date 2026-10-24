@@ -103,7 +103,7 @@
 .head-actions { display: flex; gap: 2px; flex: none; }
 .menu-toggle { display: none; }
 
-@media (max-width: 760px) {
+@media (max-width: 920px) {
   .site-nav {
     position: absolute; top: 100%; right: var(--gutter-r); left: var(--gutter-l);
     flex-direction: column; gap: 2px; padding: 8px;
@@ -379,3 +379,9 @@
 .gb-del:hover { opacity: 1; background: rgba(0, 0, 0, .08); }
 .gb-msg { margin: 0; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.65; font-size: 14.5px; }
 @media (prefers-reduced-motion: reduce) { .gb-note { transform: none !important; } }
+
+/* 별이 귤 머리에 앉으면 기기 화면에 잠깐 인사 */
+.lcd.flash { animation: lcd-flash .5s steps(2) 3; }
+@keyframes lcd-flash { 50% { opacity: .35; } }
+.gb-home { align-self: flex-start; }
+@media (prefers-reduced-motion: reduce) { .lcd.flash { animation: none; } }

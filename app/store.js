@@ -120,3 +120,23 @@ export function applyTheme() {
   if (state.theme === 'auto') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', state.theme);
 }
+
+/* ---------- 방명록을 남기면 홈에서 별 하나가 떨어진다 ---------- */
+
+const STAR_KEY = 'gyul.starDrop';
+
+export function queueStarDrop() {
+  state.starDrop = true;
+  try { sessionStorage.setItem(STAR_KEY, '1'); } catch { /* 메모리 표시만으로도 충분 */ }
+}
+
+/** 예약된 별이 있으면 true를 돌려주고 예약을 지운다 (한 번만) */
+export function takeStarDrop() {
+  let queued = !!state.starDrop;
+  try {
+    queued = queued || sessionStorage.getItem(STAR_KEY) === '1';
+    sessionStorage.removeItem(STAR_KEY);
+  } catch { /* 무시 */ }
+  state.starDrop = false;
+  return queued;
+}

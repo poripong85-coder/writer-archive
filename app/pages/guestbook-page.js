@@ -39,6 +39,7 @@ export function createGuestbookPage() {
     compose,
     count,
     wall,
+    el('a', { class: 'back-link gb-home', href: '#', text: '← 귤껍질 마을로', onclick: (e) => { e.preventDefault(); store.go('home'); } }),
   );
 
   const gb = () => store.state.guestbook;
@@ -110,7 +111,8 @@ export function createGuestbookPage() {
         await gb().add({ name: nameInput.value, stamp: pickedStamp, message: msg.value });
         store.storage.set(NAME_KEY, nameInput.value.trim());
         msg.value = '';
-        toast('방명록에 남겼어요', { peel: true });
+        store.queueStarDrop();
+        toast('방명록에 남겼어요. 마을에 들러보세요 ✨', { peel: true, ms: 3600 });
       } catch (err) {
         toast(err?.message || '남기지 못했어요');
       } finally {
