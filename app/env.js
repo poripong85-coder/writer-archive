@@ -4,7 +4,7 @@
 //  - web   : 실제 주소로 배포 + config.js 에 Supabase 설정 → 누구나 읽고, 카카오·구글·메일로 로그인
 //  - local : 파일을 직접 띄움(설정 없음) → 이 브라우저의 IndexedDB, 실행한 사람이 관리자
 
-import { supabaseConfigured, getClient, currentViewer, photoBaseUrl } from './supa.js';
+import { supabaseConfigured, getClient, currentViewer, photoBaseUrl, completeNaverLogin } from './supa.js';
 import { setPhotoBase } from './media.js';
 
 const LOCAL_ME = Object.freeze({
@@ -33,8 +33,9 @@ export async function detectEnv() {
       try {
         const sb = await getClient();
         setPhotoBase(photoBaseUrl());
+        const naver = await completeNaverLogin(sb);   // #naver_token=… 으로 돌아왔을 때만 일한다
         const me = await currentViewer(sb);
-        return { mode: 'web', sb, db: null, user: null, assets: null, downloads: null, me };
+        return { mode: 'web', sb, db: null, user: null, assets: null, downloads: null, me, notice: naver?.error || null };
       } catch (err) {
         return { mode: 'offline', error: err, db: null, user: null, assets: null, downloads: null, me: GUEST_ME };
       }

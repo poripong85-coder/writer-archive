@@ -15,8 +15,8 @@ import { createGuestbook } from './guestbook.js';
 import { exportBackup, parseBackup } from './backup.js';
 import * as local from './db.js';
 import { formatBytes, relativeDayLabel, formatDayShort } from './util.js';
-import { openLoginSheet, openAccountSheet } from './auth.js';
-import { takeRememberedRoute } from './supa.js';
+import { openLoginSheet, openAccountSheet, openNewPasswordSheet } from './auth.js';
+import { takeRememberedRoute, onPasswordRecovery } from './supa.js';
 
 const framed = isFramedRuntime();
 const main = document.getElementById('main');
@@ -364,6 +364,8 @@ render('init');
   document.documentElement.dataset.mode = env.mode;
 
   if (env.mode === 'web') {
+    if (env.notice) setTimeout(() => toast(env.notice, { ms: 4800 }), 300);
+    onPasswordRecovery(() => openNewPasswordSheet(env));
     // 로그인하고 돌아왔으면 원래 보던 화면으로
     const back = takeRememberedRoute();
     if (back && env.me.id) {

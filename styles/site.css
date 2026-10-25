@@ -398,3 +398,21 @@
 .confirm-title { margin: 12px 0 0; text-align: center; font-size: 12px; line-height: 1.5; color: var(--text); }
 .confirm.gift .confirm-text { padding-top: 8px; }
 .confirm.gift .confirm-actions .btn { font-family: var(--px-font); font-size: 12px; letter-spacing: .08em; padding: 12px; }
+
+/* 로그인 상자: 소셜 버튼 + 이메일 아이디 */
+.login-social { display: flex; flex-direction: column; gap: 8px; }
+.login-btn.naver { background: #03C75A; color: #fff; }
+.login-btn.naver svg { width: 16px; height: 16px; }
+.login-pw { width: 100%; }
+.login-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.login-field { display: flex; flex-direction: column; gap: 4px; }
+.login-field .field-label { margin: 0; font-size: 12.5px; }
+.login-links { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+.link-btn {
+  border: 0; background: none; cursor: pointer; padding: 4px 2px;
+  font-size: 13px; color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px;
+}
+.link-btn:hover { color: var(--text); }
+.login-done { display: flex; flex-direction: column; gap: 8px; text-align: center; }
+.login-done p { margin: 0; }
+.login-done .px { font-size: 12px; color: var(--text); }

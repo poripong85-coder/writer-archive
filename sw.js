@@ -1,5 +1,5 @@
 // 앱 셸 오프라인 캐시. 기록 자체는 IndexedDB에 있으므로 여기서는 정적 파일만 다룬다.
-const CACHE = 'gyul-shell-v4';
+const CACHE = 'gyul-shell-v5';
 const SHELL = [
   './',
   'index.html',

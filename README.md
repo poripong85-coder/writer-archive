@@ -43,7 +43,7 @@
 |---|---|---|---|
 | claude.ai 아티팩트 (로그인) | 공유 저장소 (db 기능) + 사진은 assets | 아티팩트 소유자 | 기록 권한 있는 사람마다 따로 |
 | claude.ai 아티팩트 (로그아웃) | — | — | 로그인 안내만 표시 |
-| 실제 주소 + `app/config.js` 설정 | Supabase (Postgres + 저장소) | `admins` 표에 넣은 계정 | 카카오·구글·메일로 로그인한 사람마다 따로 |
+| 실제 주소 + `app/config.js` 설정 | Supabase (Postgres + 저장소) | `admins` 표에 넣은 계정 | 카카오·네이버·이메일 아이디로 로그인한 사람마다 따로 |
 | 직접 띄움, 설정 없음 (`npm start`) | 이 브라우저의 IndexedDB | 실행한 사람 | 같은 브라우저 안에서 체험용 |
 
 아티팩트에 선언한 접근 규칙:
@@ -67,7 +67,7 @@ db: { rules: [
 
 ## 실제 주소로 배포
 
-GitHub Pages + Supabase로 띄우면 로그인 없이 누구나 보고, 카카오·구글·메일로 로그인해 각자 기록할 수 있습니다.
+GitHub Pages + Supabase로 띄우면 로그인 없이 누구나 보고, 카카오·네이버 또는 이메일 아이디+비밀번호로 로그인해 각자 기록할 수 있습니다.
 순서는 [DEPLOY.md](DEPLOY.md)에 있습니다. 표와 권한 규칙은 [`supabase/schema.sql`](supabase/schema.sql) 하나를 실행하면 끝납니다.
 
 ## 로컬에서 띄우기
@@ -94,7 +94,7 @@ fonts/Galmuri11.woff2    한글 픽셀 폰트 (Galmuri, SIL OFL 1.1)
 app/
   main.js                부팅, 라우팅(#intro #fragments #factory #stay), 설정, 알림, 이전
   config.js              실제 주소 배포용 Supabase 주소·공개 키·로그인 방식
-  supa.js · auth.js      Supabase 연결, 로그인·로그아웃 화면
+  supa.js · auth.js      Supabase 연결, 로그인(카카오·네이버·아이디/비번)·회원가입·비밀번호 찾기
   env.js                 실행 환경 판단 (cloud / guest / web / local)
   books.js               기록장: CloudBook(claude db) · SupaBook(Supabase) · LocalBook(IndexedDB) · SigninBook
   pages.js               소개 글 저장소
@@ -109,6 +109,7 @@ app/
 vendor/                  supabase-js 2.117.3 (MIT) — 웹 모드에서만 불러옴
 supabase/schema.sql      표·권한 규칙·사진 저장소·방명록 (SQL Editor에 붙여넣기)
 supabase/guestbook.sql   방명록만 따로 (schema.sql 을 이미 실행한 프로젝트용)
+supabase/functions/naver-login   네이버 로그인 다리 역할 서버 함수 (Edge Function)
 test/util.test.js        순수 로직 테스트 20개
 ```
 

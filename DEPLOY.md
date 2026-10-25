@@ -1,7 +1,7 @@
 # 실제 주소로 배포하기
 
 귤껍질 출판사를 **GitHub Pages**(호스팅) + **Supabase**(로그인·저장)로 띄우는 순서입니다.
-다 하고 나면 로그인 없이 누구나 기록을 보고, 카카오·구글·메일로 로그인해 '나도 기록해보기'를 쓸 수 있습니다.
+다 하고 나면 로그인 없이 누구나 기록을 보고, 카카오·네이버 또는 이메일 아이디+비밀번호로 로그인해 '나도 기록해보기'를 쓸 수 있습니다.
 
 > 주소: `https://poripong85-coder.github.io/writer-archive/`
 > (도메인을 사면 바꿀 수 있어요 — 맨 아래 참고)
@@ -38,7 +38,18 @@
 
 ## 3. 로그인 방식 켜기
 
-**메일 링크**는 처음부터 켜져 있어서 바로 쓸 수 있어요. 다만 Supabase 기본 메일은 시간당 보낼 수 있는 양이 아주 적어서, 방문자용으로는 카카오·구글을 권해요.
+로그인 화면에는 **카카오 · 네이버 버튼**과 **이메일 아이디 + 비밀번호** 칸이 나옵니다.
+버튼은 Supabase에서 실제로 켜진 것만 자동으로 보여요. 켜지 않은 버튼은 숨겨지니 하나씩 천천히 켜도 됩니다.
+
+### 이메일 아이디 + 비밀번호 (기본, 5초)
+
+처음부터 켜져 있어요. 딱 하나만 바꿔 주세요.
+
+1. Supabase **Authentication → Sign In / Providers → Email**
+2. **Confirm email** 을 **OFF** → Save
+
+끄면 회원가입하자마자 바로 로그인돼요. 켜 두면 가입할 때마다 확인 메일이 가는데, Supabase 기본 메일은 시간당 몇 통밖에 못 보내서 방문자가 많으면 막혀요.
+(비밀번호를 잊었을 때 '비밀번호 찾기' 메일은 그대로 갑니다.)
 
 ### 카카오 (선택)
 
@@ -47,23 +58,61 @@
 3. **카카오 로그인** → 활성화 **ON** → Redirect URI에
    `https://<프로젝트ID>.supabase.co/auth/v1/callback` 등록
 4. **카카오 로그인 → 동의항목**: 닉네임, 프로필 사진, 카카오계정(이메일) 설정
-   - 이메일 항목은 앱 상태에 따라 '비즈 앱' 전환을 요구할 수 있어요. 막히면 구글·메일부터 쓰고 나중에 켜도 됩니다.
+   - 이메일 항목은 앱 상태에 따라 '비즈 앱' 전환을 요구할 수 있어요.
 5. **보안 → Client Secret** 코드 생성 → 활성화
 6. Supabase **Authentication → Sign In / Providers → Kakao** 켜기
    - Client ID = 앱 키의 **REST API 키**
    - Client Secret = 5번에서 만든 코드
+
+켜고 사이트를 새로고침하면 **카카오로 시작하기** 버튼이 저절로 나타나요.
+
+### 네이버 (선택)
+
+Supabase에는 네이버가 기본으로 없어서, 저장소에 들어 있는 작은 서버 함수
+[`supabase/functions/naver-login`](supabase/functions/naver-login/index.ts)가 다리 역할을 해요.
+
+**① 네이버 앱 만들기**
+
+1. [NAVER Developers](https://developers.naver.com/apps) → **Application 등록**
+2. 사용 API: **네이버 로그인** → 제공 정보에서 **이메일 주소 = 필수**, 별명·프로필 사진은 선택
+3. 환경 추가 → **PC 웹**
+   - 서비스 URL: `https://poripong85-coder.github.io`
+   - Callback URL: `https://<프로젝트ID>.supabase.co/functions/v1/naver-login`
+4. 등록 후 **Client ID**, **Client Secret** 확인
+
+**② 서버 함수 올리기** (Supabase 대시보드에서)
+
+1. **Edge Functions → Deploy a new function → Via Editor**
+2. 함수 이름 `naver-login`, 내용은 [`index.ts`](supabase/functions/naver-login/index.ts) 전체를 붙여넣기 → Deploy
+3. 함수 **Details(설정)** 에서 **Verify JWT** 를 **OFF** (네이버가 직접 부르는 주소라서요)
+4. **Edge Functions → Secrets** 에 세 개 추가
+   | 이름 | 값 |
+   | --- | --- |
+   | `NAVER_CLIENT_ID` | ①의 Client ID |
+   | `NAVER_CLIENT_SECRET` | ①의 Client Secret — **여기에만** 넣고 저장소엔 절대 올리지 마세요 |
+   | `SITE_URL` | `https://poripong85-coder.github.io/writer-archive/` |
+
+**③ 사이트에 Client ID 적기**
+
+[`app/config.js`](app/config.js)의 `NAVER_CLIENT_ID`에 Client ID(공개돼도 되는 값)를 넣으면 **네이버로 시작하기** 버튼이 나와요.
+
+```js
+export const NAVER_CLIENT_ID = '여기에 Client ID';
+```
+
+> 네이버 앱은 처음엔 '개발 중' 상태라 **멤버 관리**에 등록한 아이디만 로그인할 수 있어요.
+> 누구나 쓰게 하려면 네이버 개발자센터에서 **검수 요청**을 해야 합니다.
 
 ### 구글 (선택)
 
 1. [Google Cloud Console](https://console.cloud.google.com) → API 및 서비스 → **OAuth 동의 화면** 만들기(외부)
 2. **사용자 인증 정보 → OAuth 클라이언트 ID**(웹 애플리케이션)
    - 승인된 리디렉션 URI: `https://<프로젝트ID>.supabase.co/auth/v1/callback`
-3. 나온 클라이언트 ID·보안 비밀을 Supabase **Providers → Google**에 붙여넣고 켜기
-
-켠 방식은 [`app/config.js`](app/config.js)의 `LOGIN_PROVIDERS`에 적어야 버튼이 나와요.
+3. 클라이언트 ID·보안 비밀을 Supabase **Providers → Google**에 붙여넣고 켜기
+4. [`app/config.js`](app/config.js)의 `LOGIN_PROVIDERS`에 `'google'` 추가
 
 ```js
-export const LOGIN_PROVIDERS = ['kakao', 'google', 'email'];
+export const LOGIN_PROVIDERS = ['kakao', 'naver', 'google', 'password'];
 ```
 
 ## 4. GitHub Pages 켜기 (1분)
