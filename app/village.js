@@ -5,7 +5,7 @@ import { drawSprite, spriteSize, NIGHT_SWAP, DUSK_SUN_SWAP } from './pixel.js';
 
 export const PLACES = [
   { key: 'intro', sprite: 'gyul', label: '귤껍질 소개', sub: '출판사 이야기', door: [14, 22] },
-  { key: 'fragments', sprite: 'star', label: '일상 조각 모음', sub: '매일의 인사이트', door: [13, 20] },
+  { key: 'fragments', sprite: 'star', label: '일상 모임 조각', sub: '모임과 매일의 조각', door: [13, 20] },
   { key: 'factory', sprite: 'pencil', label: '사부작 책공장', sub: '책 만드는 곳', door: [7, 36] },
   { key: 'stay', sprite: 'house', label: '시안북스테이', sub: '책과 머무는 집', door: [15, 24] },
 ];

@@ -1,6 +1,7 @@
-// 로그인·회원가입·로그아웃 화면 — 웹 모드(Supabase)에서만 쓴다.
-//   소셜: 카카오(Supabase 기본 제공), 네이버(naver-login 함수)
-//   이메일 아이디 + 비밀번호: 로그인 / 회원가입 / 비밀번호 찾기 / 새 비밀번호 정하기
+// 로그인·로그아웃 화면 — 웹 모드(Supabase)에서만 쓴다.
+// 방문자는 로그인하지 않는다. 편집장만 숨은 입구(#editor, 설정의 '편집장 로그인')로 들어온다.
+//   이메일 아이디 + 비밀번호: 로그인 / 비밀번호 찾기 / 새 비밀번호 정하기
+//   소셜(카카오·네이버)과 회원가입은 config.js 의 LOGIN_PROVIDERS 와 signup 옵션으로 다시 켤 수 있다
 
 import { el, clear, toast, openSheet } from './ui.js';
 import {
@@ -32,7 +33,7 @@ function field(id, label, attrs) {
 }
 
 /** 켜진 로그인 방식만큼 버튼과 이메일 아이디 상자를 만든다 */
-export function loginButtons(env) {
+export function loginButtons(env, { signup = true } = {}) {
   const n = ++seq;
   const wrap = el('div', { class: 'login-box' }, el('p', { class: 'muted', text: '로그인 방법을 불러오는 중…' }));
   loginOptions().then(({ list, autoconfirm, signupOpen }) => {
@@ -56,7 +57,7 @@ export function loginButtons(env) {
     if (social.children.length) wrap.append(social);
     if (list.includes('password')) {
       if (social.children.length) wrap.append(el('div', { class: 'login-or', text: '또는 이메일 아이디로' }));
-      wrap.append(passwordBox(env, n, { autoconfirm, signupOpen }));
+      wrap.append(passwordBox(env, n, { autoconfirm, signupOpen: signup && signupOpen }));
     }
     if (!wrap.children.length) wrap.append(el('p', { class: 'muted', text: '아직 켜진 로그인 방식이 없어요.' }));
   });
@@ -139,11 +140,12 @@ function passwordBox(env, n, { autoconfirm, signupOpen }) {
   return box;
 }
 
+/** 편집장 입구 — 방문자는 로그인 없이 모든 걸 볼 수 있다 */
 export function openLoginSheet(env) {
-  openSheet('귤껍질 출판사 로그인', (body) => {
+  openSheet('편집장 로그인', (body) => {
     body.append(
-      el('p', { class: 'sheet-note', text: '로그인하면 방명록을 남기고, 나만의 기록장을 쓸 수 있어요.' }),
-      loginButtons(env),
+      el('p', { class: 'sheet-note', text: '편집장이 기록과 소개 글을 쓰는 입구예요. 방문자는 로그인 없이 모든 글을 보고 방명록을 남길 수 있어요.' }),
+      loginButtons(env, { signup: false }),
     );
   });
 }

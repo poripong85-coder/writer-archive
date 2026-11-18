@@ -1,6 +1,6 @@
-// 와글와글 방명록 — 누구나 읽고, 로그인한 사람이 남기고, 내 글은 내가·모든 글은 편집장이 지운다.
+// 와글와글 방명록 — 누구나 읽고, 로그인 없이 이름만 적고 남기고, 모든 글은 편집장이 지운다.
 // 저장 위치는 환경마다 다르다.
-//   web   : Supabase guestbook 표 (글쓴이·편집장 배지·시각은 서버 트리거가 채움)
+//   web   : Supabase guestbook 표 (편집장 배지·시각·도배 방지는 서버 트리거가 맡음)
 //   cloud : claude.ai db — guestbook/<내 id> 문서에 내 글 목록, 편집장 글은 guestbook/_owner
 //   local : 이 브라우저 IndexedDB (meta 'guestbook')
 
@@ -28,6 +28,8 @@ function clean(raw) {
   };
 }
 
+const RESERVED = "'편집장'이 들어간 이름은 편집장만 쓸 수 있어요.";
+
 export function validate({ name, message, stamp }) {
   const n = String(name || '').trim();
   const m = String(message || '').trim();
@@ -54,7 +56,7 @@ export function createGuestbook(env) {
     items: [],
     status: 'idle',          // idle | loading | ready | error | unavailable | notready
     canRead: ['web', 'cloud', 'local'].includes(env.mode),
-    canWrite: env.mode === 'local' || ((env.mode === 'web' || env.mode === 'cloud') && !!me.id),
+    canWrite: env.mode === 'local' || env.mode === 'web' || (env.mode === 'cloud' && !!me.id),
     canModerate: env.mode === 'local' || !!me.isOwner,
     denied: false,
     onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
@@ -94,8 +96,10 @@ export function createGuestbook(env) {
   }
   function webError(error) {
     const msg = String(error?.message || '');
-    if (error?.code === 'P0001' || /천천히|rate/i.test(msg) || error?.hint === 'rate_limited') return '조금 천천히 남겨주세요. 1분에 3개까지 쓸 수 있어요.';
-    if (error?.code === '42501' || /row-level security|permission/i.test(msg)) return '로그인한 뒤에 남길 수 있어요.';
+    if (error?.hint === 'reserved_name' || /편집장이라는 이름/.test(msg)) return RESERVED;
+    if (error?.code === 'P0001' || /천천히|rate/i.test(msg) || error?.hint === 'rate_limited') return '방명록이 북적여요. 1분쯤 뒤에 다시 남겨주세요.';
+    // Supabase에 visitors.sql 을 아직 실행하지 않았으면 손님 쓰기가 막혀 있다
+    if (error?.code === '42501' || /row-level security|permission/i.test(msg)) return '방명록 쓰기를 여는 중이에요. 잠시 뒤 다시 시도해 주세요.';
     if (error?.code === '23514') return '이름이나 글 길이를 확인해 주세요.';
     return '남기지 못했어요. 잠시 뒤 다시 시도해 주세요.';
   }
@@ -152,7 +156,8 @@ export function createGuestbook(env) {
   async function add({ name, stamp, message }) {
     const problem = validate({ name, message, stamp });
     if (problem) throw new Error(problem);
-    if (!book.canWrite) throw new Error('로그인한 뒤에 남길 수 있어요.');
+    if (!book.canWrite) throw new Error('지금은 방명록을 남길 수 없어요.');
+    if (env.mode === 'web' && !me.isOwner && name.includes('편집장')) throw new Error(RESERVED);
     if (tooFast()) throw new Error('조금 천천히 남겨주세요. 1분에 3개까지 쓸 수 있어요.');
     const item = { name: name.trim(), stamp, message: message.trim() };
 

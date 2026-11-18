@@ -5,7 +5,6 @@ import { timeOfDay } from '../village.js';
 import * as store from '../store.js';
 import { sprite } from '../pixel.js';
 import { STAMPS, MAX_MESSAGE, MAX_NAME } from '../guestbook.js';
-import { loginButtons } from '../auth.js';
 import { timeAgo } from '../util.js';
 
 const STAMP_SPRITE = { gyul: 'i-gyul', star: 'i-star', pencil: 'i-pencil', house: 'i-house', heart: 'heart' };
@@ -42,7 +41,7 @@ export function createGuestbookPage() {
       sprite('chat', { scale: 3, className: 'tp-sprite' }),
       el('div', { class: 'tp-title' },
         el('h1', { class: 'px', id: 'gb-title', text: '와글와글 방명록' }),
-        el('p', { class: 'page-lead', text: '귤껍질 마을에 다녀간 흔적을 남겨주세요. 한마디면 충분해요.' }),
+        el('p', { class: 'page-lead', text: '귤껍질 마을에 다녀간 흔적을 남겨주세요. 로그인 없이 이름과 한마디면 충분해요.' }),
       ),
     ),
     giftNote,
@@ -182,12 +181,7 @@ export function createGuestbookPage() {
       compose.append(buildForm());
       return;
     }
-    if (env.mode === 'web') {
-      compose.append(el('div', { class: 'gb-login' },
-        el('p', { text: '로그인하면 방명록에 한마디를 남길 수 있어요.' }),
-        loginButtons(env),
-      ));
-    } else if (env.mode === 'cloud' && book.denied) {
+    if (env.mode === 'cloud' && book.denied) {
       compose.append(el('p', { class: 'muted', text: '아직 방명록을 남길 수 있는 권한이 없어요. 관리자에게 요청해 주세요.' }));
     } else if (env.mode === 'guest' || env.mode === 'cloud') {
       compose.append(el('p', { class: 'muted', text: 'claude.ai에 로그인하면 방명록을 보고 남길 수 있어요.' }));

@@ -1,4 +1,4 @@
-// 소개 · 사부작 책공장 · 시안북스테이 — 관리자가 화면에서 바로 쓰고 고치는 글 페이지.
+// 소개 · 사부작 책공장 · 시안북스테이 · 모임 소개 — 관리자가 화면에서 바로 쓰고 고치는 글 페이지.
 
 import { el, clear, toast } from '../ui.js';
 import * as store from '../store.js';
@@ -11,12 +11,40 @@ const META = {
     // 관리자가 아직 쓰지 않았을 때 보이는 초안. 관리자에게는 '초안' 표시가 붙는다.
     draft: {
       lead: '하루의 생각을 껍질째 모으는 작은 출판사',
-      body: '귤을 까면 껍질이 남듯, 하루를 살면 생각의 껍질이 남아요.\n귤껍질 출판사는 그 조각들을 버리지 않고 모아 엮습니다.\n\n· 일상 조각 모음 — 편집장이 매일 모으는 인사이트 조각. 자정이 되면 하루치가 조각으로 정리돼요.\n· 사부작 책공장 — 사부작사부작 책을 만드는 곳.\n· 시안북스테이 — 책과 함께 머무는 집.',
+      body: '귤을 까면 껍질이 남듯, 하루를 살면 생각의 껍질이 남아요.\n귤껍질 출판사는 그 조각들을 버리지 않고 모아 엮습니다.\n\n· 일상 모임 조각 — 함께하는 모임 소식과 편집장이 매일 모으는 인사이트 조각.\n· 사부작 책공장 — 사부작사부작 책을 만드는 곳.\n· 시안북스테이 — 책과 함께 머무는 집.',
     },
   },
   factory: { title: '사부작 책공장', icon: 'pencil', soon: '사부작사부작, 책을 만드는 곳이 문을 여는 중이에요.' },
   stay: { title: '시안북스테이', icon: 'house', soon: '책과 함께 머무는 집이 손님 맞을 준비를 하고 있어요.' },
+  // 모임 소개 — 일시·장소 같은 자세한 내용은 편집장이 사이트에서 '글 고치기'로 채운다
+  'meet-snowman': {
+    title: '눈사람 모빌 + 겨울 간식 모임', icon: 'i-snowman', back: 'fragments',
+    draft: {
+      lead: '눈사람 모빌을 만들고, 겨울 간식을 나눠 먹는 모임',
+      body: '눈사람 모빌을 함께 만들고, 겨울 간식을 나눠 먹어요.\n\n· 언제 — 곧 알려드려요\n· 어디서 — 곧 알려드려요\n· 준비물 — 곧 알려드려요\n· 신청 — 곧 알려드려요',
+    },
+  },
+  'meet-persimmon': {
+    title: '겨울 감 먹으며 새해 모임 나누기', icon: 'i-persimmon', back: 'fragments',
+    draft: {
+      lead: '겨울 감을 먹으며 새해를 함께 나누는 모임',
+      body: '겨울 감을 나눠 먹으며, 새해 이야기를 함께 나눠요.\n\n· 언제 — 곧 알려드려요\n· 어디서 — 곧 알려드려요\n· 준비물 — 곧 알려드려요\n· 신청 — 곧 알려드려요',
+    },
+  },
 };
+
+/** 일상 모임 조각에 카드로 거는 모임 소개 페이지 */
+export const MEETINGS = ['meet-snowman', 'meet-persimmon'];
+
+export function pageMeta(key) {
+  return META[key];
+}
+
+/** 편집장이 쓴 한 줄 소개, 없으면 초안 */
+export function pageLead(key) {
+  const doc = store.state.pages?.get(key);
+  return (doc && doc.lead) || META[key]?.draft?.lead || '';
+}
 
 function renderBody(text) {
   const wrap = el('div', { class: 'prose' });
@@ -53,6 +81,10 @@ export function createTextPage(key) {
     ),
     body,
     tools,
+    meta.back ? el('a', {
+      class: 'back-link tp-back', href: `#${meta.back}`, text: '← 일상 모임 조각으로',
+      onclick: (e) => { e.preventDefault(); store.go(meta.back); },
+    }) : null,
   );
 
   function current() {

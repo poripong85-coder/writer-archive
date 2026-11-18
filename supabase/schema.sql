@@ -4,7 +4,8 @@
 --
 -- 규칙 요약
 --   fragments  (귤껍질 기록장) : 누구나 읽기, 편집장만 쓰기
---   pages      (소개·책공장·북스테이 글) : 누구나 읽기, 편집장만 쓰기
+--   pages      (소개·책공장·북스테이·모임 소개 글) : 누구나 읽기, 편집장만 쓰기
+--   guestbook  (와글와글 방명록) : 누구나 읽고 로그인 없이 쓰기, 편집장이 지우기
 --   my_fragments (나의 기록장) : 로그인한 본인만 읽고 쓰기 (편집장도 못 봄)
 --   admins     (편집장 목록)   : 본인 행만 읽기, 추가는 SQL Editor에서만
 --   photos 저장소 : 누구나 주소로 열람, 편집장은 public/ 에, 각자는 users/<내 id>/ 에만 올리고 지움
@@ -40,11 +41,16 @@ create table if not exists public.my_fragments (
 create index if not exists my_fragments_user_created_idx on public.my_fragments (user_id, created_at desc);
 
 create table if not exists public.pages (
-  key         text primary key check (key in ('intro', 'factory', 'stay')),
+  key         text primary key check (key in ('intro', 'factory', 'stay', 'meet-snowman', 'meet-persimmon')),
   lead        text not null default '' check (char_length(lead) <= 300),
   body        text not null default '' check (char_length(body) <= 20000),
   updated_at  bigint not null default 0
 );
+
+-- 모임 소개 페이지 2개(눈사람 모빌 · 겨울 감)도 편집장이 사이트에서 쓰고 고칠 수 있게
+alter table public.pages drop constraint if exists pages_key_check;
+alter table public.pages add constraint pages_key_check
+  check (key in ('intro', 'factory', 'stay', 'meet-snowman', 'meet-persimmon'));
 
 -- ---------- 편집장 판별 ----------
 -- security definer: admins 표를 읽을 권한이 없는 사람도 "내가 편집장인가"만은 물을 수 있게.
@@ -166,13 +172,15 @@ create policy "photos: 내 사진 지우기" on storage.objects
 
 create table if not exists public.guestbook (
   id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  user_id     uuid default auth.uid() references auth.users (id) on delete cascade,
   author_name text not null check (char_length(btrim(author_name)) between 1 and 20),
   by_admin    boolean not null default false,
   stamp       text not null default 'gyul' check (stamp in ('gyul', 'star', 'pencil', 'house', 'heart')),
   message     text not null check (char_length(btrim(message)) between 1 and 300),
   created_at  timestamptz not null default now()
 );
+-- 예전 버전(로그인한 사람만 쓰기)에서 만든 표도 손님 글을 받을 수 있게
+alter table public.guestbook alter column user_id drop not null;
 create index if not exists guestbook_created_at_idx on public.guestbook (created_at desc);
 
 create or replace function public.guestbook_before_insert()
@@ -182,18 +190,26 @@ security definer
 set search_path = public
 as $$
 begin
-  new.user_id := auth.uid();
-  if new.user_id is null then
-    raise exception '로그인이 필요해요' using errcode = '42501';
-  end if;
-  if (select count(*) from public.guestbook
-        where user_id = new.user_id and created_at > now() - interval '1 minute') >= 3 then
-    raise exception '조금 천천히 남겨주세요' using errcode = 'P0001', hint = 'rate_limited';
-  end if;
+  new.user_id     := auth.uid();          -- 손님이면 비어 있다
   new.by_admin    := public.is_admin();
   new.created_at  := now();
   new.author_name := btrim(new.author_name);
   new.message     := btrim(new.message);
+  if not new.by_admin and new.author_name like '%편집장%' then
+    raise exception '편집장이라는 이름은 쓸 수 없어요' using errcode = 'P0001', hint = 'reserved_name';
+  end if;
+  if new.user_id is null then
+    -- 손님 글은 누가 썼는지 알 수 없으니 손님 전체를 합쳐서 센다
+    if (select count(*) from public.guestbook
+          where user_id is null and created_at > now() - interval '1 minute') >= 6
+       or (select count(*) from public.guestbook
+          where user_id is null and created_at > now() - interval '1 day') >= 300 then
+      raise exception '조금 천천히 남겨주세요' using errcode = 'P0001', hint = 'rate_limited';
+    end if;
+  elsif (select count(*) from public.guestbook
+           where user_id = new.user_id and created_at > now() - interval '1 minute') >= 3 then
+    raise exception '조금 천천히 남겨주세요' using errcode = 'P0001', hint = 'rate_limited';
+  end if;
   return new;
 end $$;
 
@@ -209,15 +225,16 @@ create policy "guestbook: 누구나 읽기" on public.guestbook
   for select to anon, authenticated using (true);
 
 drop policy if exists "guestbook: 로그인하면 쓰기" on public.guestbook;
-create policy "guestbook: 로그인하면 쓰기" on public.guestbook
-  for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "guestbook: 누구나 쓰기" on public.guestbook;
+create policy "guestbook: 누구나 쓰기" on public.guestbook
+  for insert to anon, authenticated with check (user_id is not distinct from auth.uid());
 
 drop policy if exists "guestbook: 본인이나 편집장이 지우기" on public.guestbook;
 create policy "guestbook: 본인이나 편집장이 지우기" on public.guestbook
   for delete to authenticated using (user_id = auth.uid() or public.is_admin());
 
-grant select on public.guestbook to anon, authenticated;
-grant insert, delete on public.guestbook to authenticated;
+grant select, insert on public.guestbook to anon, authenticated;
+grant delete on public.guestbook to authenticated;
 
 do $$
 begin

@@ -1,4 +1,5 @@
-// 일상 조각 모음 — 귤껍질 기록장(모두 읽기, 관리자만 쓰기)과 나도 기록해보기(각자의 기록장).
+// 일상 모임 조각 — 위에는 모임 소개 카드, 아래는 귤껍질 기록장(모두 읽기, 편집장만 쓰기).
+// 방문자는 로그인하지 않으므로 '나의 기록장'은 보여주지 않는다.
 
 import { el, clear } from '../ui.js';
 import * as store from '../store.js';
@@ -6,7 +7,7 @@ import { createTodayView } from '../views/today.js';
 import { createCalendarView } from '../views/calendar.js';
 import { createFragmentsView } from '../views/fragments.js';
 import { sprite } from '../pixel.js';
-import { loginButtons } from '../auth.js';
+import { MEETINGS, pageMeta, pageLead } from './page.js';
 
 const TAB_LABEL = { today: '오늘 쓰기', calendar: '달력', fragments: '조각 모음' };
 const FACTORY = { today: createTodayView, calendar: createCalendarView, fragments: createFragmentsView };
@@ -20,60 +21,56 @@ export function tabsFor(book) {
 }
 
 export function createFragmentsPage() {
-  const views = { public: {}, mine: {} };
+  const views = { public: {} };
   let mounted = null; // { key, tab, view }
 
-  const switcher = el('div', { class: 'book-switch', role: 'tablist', 'aria-label': '기록장 고르기' });
+  const meetings = el('div', { class: 'meet-list' });
   const who = el('p', { class: 'book-sub' });
   const tabs = el('div', { class: 'book-tabs', role: 'tablist', 'aria-label': '보기 방식' });
   const body = el('div', { class: 'book-body' });
-  const footer = el('div', { class: 'book-footer' });
 
   const root = el('section', { class: 'page fp', 'aria-labelledby': 'fp-title' },
     el('header', { class: 'fp-head' },
       el('div', { class: 'fp-title-row' },
         sprite('i-star', { scale: 3, className: 'fp-icon' }),
-        el('h1', { class: 'px fp-title', id: 'fp-title', text: '일상 조각 모음' }),
+        el('h1', { class: 'px fp-title', id: 'fp-title', text: '일상 모임 조각' }),
       ),
-      switcher,
+    ),
+    el('section', { class: 'meet', 'aria-labelledby': 'meet-title' },
+      el('h2', { class: 'px meet-title', id: 'meet-title', text: '모임 소개' }),
+      meetings,
+    ),
+    el('div', { class: 'fp-book-head' },
+      el('h2', { class: 'px meet-title', text: '귤껍질 기록장' }),
       who,
     ),
     tabs,
     body,
   );
 
-  function renderSwitcher() {
-    clear(switcher);
-    for (const key of ['public', 'mine']) {
-      const b = store.book(key);
-      const on = store.state.activeBook === key;
-      switcher.append(el('button', {
-        class: `book-pill${on ? ' on' : ''}`, type: 'button', role: 'tab',
-        'aria-selected': on ? 'true' : 'false',
-        text: key === 'public' ? '귤껍질 기록장' : '나의 기록장',
-        onclick: () => store.setActiveBook(key),
-        title: b?.subtitle || '',
-      }));
+  function renderMeetings() {
+    clear(meetings);
+    for (const key of MEETINGS) {
+      const meta = pageMeta(key);
+      meetings.append(el('a', {
+        class: 'meet-card', href: `#${key}`,
+        onclick: (e) => { e.preventDefault(); store.go(key); },
+      },
+        sprite(meta.icon, { scale: 3, className: 'meet-icon' }),
+        el('span', { class: 'meet-text' },
+          el('strong', { class: 'meet-name', text: meta.title }),
+          el('span', { class: 'meet-lead', text: pageLead(key) }),
+        ),
+        el('span', { class: 'meet-go', 'aria-hidden': 'true', text: '→' }),
+      ));
     }
   }
 
   function renderWho(b) {
     clear(who);
-    const me = store.state.env?.me;
-    if (b.key === 'public') {
-      who.append(b.canWrite
-        ? '편집장 모드 · 여기 남긴 조각은 모두에게 공개돼요'
-        : '귤껍질 편집장이 매일 모으는 인사이트 조각이에요. 날짜를 눌러 그날의 조각을 열어보세요.');
-    } else if (b.status === 'signin') {
-      who.append('로그인하면 나만의 기록장이 생겨요');
-    } else {
-      if (me?.avatarUrl) {
-        const img = el('img', { class: 'who-avatar', src: me.avatarUrl, alt: '' });
-        img.addEventListener('error', () => img.remove(), { once: true });
-        who.append(img);
-      }
-      who.append(`${me?.name ? `${me.name}님의` : '나의'} 기록장 · 나만 볼 수 있어요`);
-    }
+    who.append(b.canWrite
+      ? '편집장 모드 · 여기 남긴 조각은 모두에게 공개돼요'
+      : '귤껍질 편집장이 매일 모으는 인사이트 조각이에요. 날짜를 눌러 그날의 조각을 열어보세요.');
   }
 
   function renderTabs(b) {
@@ -90,38 +87,8 @@ export function createFragmentsPage() {
     }
   }
 
-  function renderFooter(b) {
-    clear(footer);
-    if (b.key === 'public') {
-      footer.append(el('div', { class: 'join-card' },
-        sprite('pencil', { scale: 3, className: 'join-icon' }),
-        el('div', { class: 'join-text' },
-          el('h2', { class: 'px', text: '나도 기록해보기' }),
-          el('p', { text: '하루 동안 떠오른 생각과 링크, 사진을 나만의 기록장에 모아보세요. 자정이 되면 하루치가 조각으로 정리돼요.' }),
-        ),
-        el('button', {
-          class: 'btn primary', type: 'button', text: '내 기록장 열기',
-          onclick: () => { store.setActiveBook('mine'); root.scrollIntoView?.({ block: 'start' }); },
-        }),
-      ));
-    } else {
-      footer.append(el('button', {
-        class: 'back-link', type: 'button', text: '← 귤껍질 기록장 구경하기',
-        onclick: () => store.setActiveBook('public'),
-      }));
-    }
-  }
-
   function signinCard(b) {
     const env = store.state.env;
-    if (env?.mode === 'web') {
-      return el('div', { class: 'signin-card' },
-        sprite('house', { scale: 3 }),
-        el('h2', { class: 'px', text: '로그인하면 기록장이 생겨요' }),
-        el('p', { text: '내 기록장의 글은 나만 볼 수 있어요. 자정이 되면 하루치가 조각으로 정리돼요.' }),
-        loginButtons(env),
-      );
-    }
     if (env?.mode === 'offline') {
       return el('div', { class: 'signin-card' },
         el('h2', { class: 'px', text: '연결하지 못했어요' }),
@@ -156,8 +123,6 @@ export function createFragmentsPage() {
     clear(body);
     body.append(view.root);
     body.dataset.tab = tab;
-    // 달력·조각 모음 아래에 '나도 기록해보기'를 붙인다. 오늘 쓰기는 입력창이 바닥에 있으니 붙이지 않는다.
-    if (tab !== 'today') view.root.querySelector('.scroll')?.append(footer);
     mounted = { key: b.key, tab, view };
     view.update('mount');
     view.activate?.();
@@ -165,14 +130,14 @@ export function createFragmentsPage() {
   }
 
   function update(reason) {
-    const b = store.book();
+    renderMeetings();
+    const b = store.book('public');
     if (!b) {
       clear(body);
       body.dataset.tab = 'none';
       body.append(el('div', { class: 'signin-card' }, el('p', { class: 'px', text: '조각을 불러오는 중이에요…' })));
       return;
     }
-    renderSwitcher();
     renderWho(b);
 
     if (b.status === 'signin' || b.status === 'error') {
@@ -182,15 +147,12 @@ export function createFragmentsPage() {
       clear(body);
       body.dataset.tab = 'none';
       body.append(b.status === 'signin' ? signinCard(b) : errorCard());
-      renderFooter(b);
-      body.append(footer);
       return;
     }
 
     const list = tabsFor(b);
     if (!list.includes(store.state.bookTab[b.key])) store.state.bookTab[b.key] = list[0];
     renderTabs(b);
-    renderFooter(b);
     const { view, fresh } = mount(b, store.state.bookTab[b.key]);
     if (!fresh) view.update(reason);
   }
@@ -201,7 +163,7 @@ export function createFragmentsPage() {
     activate() { mounted?.view?.activate?.(); },
     deactivate() { mounted?.view?.deactivate?.(); },
     focusSearch() {
-      store.setBookTab(store.state.activeBook, 'fragments');
+      store.setBookTab('public', 'fragments');
       setTimeout(() => mounted?.view?.focus?.(), 30);
     },
   };

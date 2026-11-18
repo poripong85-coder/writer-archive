@@ -1,7 +1,7 @@
 # 실제 주소로 배포하기
 
 귤껍질 출판사를 **GitHub Pages**(호스팅) + **Supabase**(로그인·저장)로 띄우는 순서입니다.
-다 하고 나면 로그인 없이 누구나 기록을 보고, 카카오·네이버 또는 이메일 아이디+비밀번호로 로그인해 '나도 기록해보기'를 쓸 수 있습니다.
+다 하고 나면 방문자는 로그인 없이 모든 글을 보고 방명록을 남기고, 편집장만 이메일 아이디+비밀번호로 로그인해 기록합니다.
 
 > 주소: `https://poripong85-coder.github.io/writer-archive/`
 > (도메인을 사면 바꿀 수 있어요 — 맨 아래 참고)
@@ -19,13 +19,15 @@
 | 이름 | 내용 | 누가 |
 |---|---|---|
 | `fragments` | 귤껍질 기록장 | 누구나 읽기 · 편집장만 쓰기 |
-| `pages` | 소개·책공장·북스테이 글 | 누구나 읽기 · 편집장만 쓰기 |
-| `my_fragments` | 나의 기록장 | 본인만 읽고 쓰기 (편집장도 못 봄) |
+| `pages` | 소개·책공장·북스테이·모임 소개 글 | 누구나 읽기 · 편집장만 쓰기 |
+| `my_fragments` | (예전) 나의 기록장 | 지금 화면에서는 쓰지 않음 · 본인만 읽고 쓰기 |
 | `admins` | 편집장 목록 | SQL Editor에서만 추가 |
 | `photos` 저장소 | 사진 | 편집장은 `public/`, 각자는 `users/<내 id>/`에만 올림 |
-| `guestbook` | 와글와글 방명록 | 누구나 읽기 · 로그인하면 쓰기 · 본인/편집장 지우기 |
+| `guestbook` | 와글와글 방명록 | 누구나 읽기 · 로그인 없이 쓰기 · 편집장 지우기 |
 
-> 이미 `schema.sql`을 실행한 뒤 방명록이 추가됐다면 [`supabase/guestbook.sql`](supabase/guestbook.sql)만 실행하면 됩니다.
+> **이미 `schema.sql`을 실행한 프로젝트라면** [`supabase/visitors.sql`](supabase/visitors.sql) 하나만 실행하세요.
+> 방명록을 로그인 없이 쓰게 바꾸고, 모임 소개 페이지 2개를 편집장이 고칠 수 있게 합니다. 여러 번 실행해도 안전해요.
+> 이 파일을 실행하기 전에는 방문자가 방명록에 남기려 하면 "방명록 쓰기를 여는 중이에요"라고 나옵니다.
 
 ## 2. 사이트 주소 알려주기 (1분)
 
@@ -36,84 +38,23 @@
 
 이걸 안 하면 로그인 후 엉뚱한 주소로 돌아가요.
 
-## 3. 로그인 방식 켜기
+## 3. 편집장 로그인 설정 (1분)
 
-로그인 화면에는 **카카오 · 네이버 버튼**과 **이메일 아이디 + 비밀번호** 칸이 나옵니다.
-버튼은 Supabase에서 실제로 켜진 것만 자동으로 보여요. 켜지 않은 버튼은 숨겨지니 하나씩 천천히 켜도 됩니다.
+방문자는 로그인하지 않아요. 메뉴에도 로그인 버튼이 없고, 편집장만 숨은 입구로 들어옵니다.
 
-### 이메일 아이디 + 비밀번호 (기본, 5초)
+- 주소 끝에 `#editor` 를 붙여 열기: `https://poripong85-coder.github.io/writer-archive/#editor`
+- 또는 사이트 오른쪽 위 설정(☀) → 맨 위 **편집장 로그인**
 
-처음부터 켜져 있어요. 딱 하나만 바꿔 주세요.
+로그인은 **이메일 아이디 + 비밀번호**이고, 비밀번호를 잊으면 같은 창의 **비밀번호 찾기**로 메일을 받아 다시 정해요.
 
-1. Supabase **Authentication → Sign In / Providers → Email**
-2. **Confirm email** 을 **OFF** → Save
+Supabase에서 두 가지를 바꿔 두세요.
 
-끄면 회원가입하자마자 바로 로그인돼요. 켜 두면 가입할 때마다 확인 메일이 가는데, Supabase 기본 메일은 시간당 몇 통밖에 못 보내서 방문자가 많으면 막혀요.
-(비밀번호를 잊었을 때 '비밀번호 찾기' 메일은 그대로 갑니다.)
+1. **Authentication → Sign In / Providers** 맨 위 **User Signups → Allow new users to sign up** 을 **OFF**
+   — 방문자 계정이 필요 없으니 아무나 가입하지 못하게 닫아 둡니다. 이미 있는 편집장 계정은 그대로 로그인돼요.
+2. 편집장 계정이 아직 없다면 **Authentication → Users → Add user → Create new user** 로 이메일과 비밀번호를 정해 만들고, 5번처럼 편집장으로 등록하세요.
 
-### 카카오 (선택)
-
-1. [Kakao Developers](https://developers.kakao.com) → 내 애플리케이션 → **애플리케이션 추가하기**
-2. **앱 설정 → 플랫폼 → Web** → 사이트 도메인에 `https://poripong85-coder.github.io` 등록
-3. **카카오 로그인** → 활성화 **ON** → Redirect URI에
-   `https://<프로젝트ID>.supabase.co/auth/v1/callback` 등록
-4. **카카오 로그인 → 동의항목**: 닉네임, 프로필 사진, 카카오계정(이메일) 설정
-   - 이메일 항목은 앱 상태에 따라 '비즈 앱' 전환을 요구할 수 있어요.
-5. **보안 → Client Secret** 코드 생성 → 활성화
-6. Supabase **Authentication → Sign In / Providers → Kakao** 켜기
-   - Client ID = 앱 키의 **REST API 키**
-   - Client Secret = 5번에서 만든 코드
-
-켜고 사이트를 새로고침하면 **카카오로 시작하기** 버튼이 저절로 나타나요.
-
-### 네이버 (선택)
-
-Supabase에는 네이버가 기본으로 없어서, 저장소에 들어 있는 작은 서버 함수
-[`supabase/functions/naver-login`](supabase/functions/naver-login/index.ts)가 다리 역할을 해요.
-
-**① 네이버 앱 만들기**
-
-1. [NAVER Developers](https://developers.naver.com/apps) → **Application 등록**
-2. 사용 API: **네이버 로그인** → 제공 정보에서 **이메일 주소 = 필수**, 별명·프로필 사진은 선택
-3. 환경 추가 → **PC 웹**
-   - 서비스 URL: `https://poripong85-coder.github.io`
-   - Callback URL: `https://<프로젝트ID>.supabase.co/functions/v1/naver-login`
-4. 등록 후 **Client ID**, **Client Secret** 확인
-
-**② 서버 함수 올리기** (Supabase 대시보드에서)
-
-1. **Edge Functions → Deploy a new function → Via Editor**
-2. 함수 이름 `naver-login`, 내용은 [`index.ts`](supabase/functions/naver-login/index.ts) 전체를 붙여넣기 → Deploy
-3. 함수 **Details(설정)** 에서 **Verify JWT** 를 **OFF** (네이버가 직접 부르는 주소라서요)
-4. **Edge Functions → Secrets** 에 세 개 추가
-   | 이름 | 값 |
-   | --- | --- |
-   | `NAVER_CLIENT_ID` | ①의 Client ID |
-   | `NAVER_CLIENT_SECRET` | ①의 Client Secret — **여기에만** 넣고 저장소엔 절대 올리지 마세요 |
-   | `SITE_URL` | `https://poripong85-coder.github.io/writer-archive/` |
-
-**③ 사이트에 Client ID 적기**
-
-[`app/config.js`](app/config.js)의 `NAVER_CLIENT_ID`에 Client ID(공개돼도 되는 값)를 넣으면 **네이버로 시작하기** 버튼이 나와요.
-
-```js
-export const NAVER_CLIENT_ID = '여기에 Client ID';
-```
-
-> 네이버 앱은 처음엔 '개발 중' 상태라 **멤버 관리**에 등록한 아이디만 로그인할 수 있어요.
-> 누구나 쓰게 하려면 네이버 개발자센터에서 **검수 요청**을 해야 합니다.
-
-### 구글 (선택)
-
-1. [Google Cloud Console](https://console.cloud.google.com) → API 및 서비스 → **OAuth 동의 화면** 만들기(외부)
-2. **사용자 인증 정보 → OAuth 클라이언트 ID**(웹 애플리케이션)
-   - 승인된 리디렉션 URI: `https://<프로젝트ID>.supabase.co/auth/v1/callback`
-3. 클라이언트 ID·보안 비밀을 Supabase **Providers → Google**에 붙여넣고 켜기
-4. [`app/config.js`](app/config.js)의 `LOGIN_PROVIDERS`에 `'google'` 추가
-
-```js
-export const LOGIN_PROVIDERS = ['kakao', 'naver', 'google', 'password'];
-```
+> 카카오·네이버 로그인 코드(`supabase/functions/naver-login`, `app/auth.js`)는 남겨 두었어요.
+> 나중에 다시 쓰려면 `app/config.js` 의 `LOGIN_PROVIDERS` 에 `'kakao'`, `'naver'` 를 넣고 git 기록의 이전 DEPLOY.md 설정 순서를 따르면 됩니다.
 
 ## 4. GitHub Pages 켜기 (1분)
 
@@ -124,7 +65,7 @@ export const LOGIN_PROVIDERS = ['kakao', 'naver', 'google', 'password'];
 
 ## 5. 편집장 등록 (1분)
 
-권한은 서버가 판단해요. 사이트에서 **한 번 로그인한 뒤** SQL Editor에서:
+권한은 서버가 판단해요. 편집장 계정을 만든 뒤 SQL Editor에서:
 
 ```sql
 insert into public.admins (user_id)
@@ -146,7 +87,6 @@ select id from auth.users where email = '내 로그인 메일 주소';
 
 - `app/config.js`의 키는 **원래 공개되는 값**이에요. 누가 무엇을 할 수 있는지는 1번의 권한 규칙이 서버에서 막습니다. **secret / service_role 키는 어디에도 넣지 마세요.**
 - Supabase 무료 프로젝트는 일주일 동안 아무 요청이 없으면 일시정지돼요. 대시보드에서 다시 켜면 데이터는 그대로입니다.
-- 나의 기록장 사진은 `users/<내 id>/<무작위 이름>` 경로라 남이 찾아낼 수 없지만, 파일 주소를 직접 공유하면 그 주소로는 열려요.
 - claude.ai 버전은 그대로 둬도 됩니다. 같은 코드가 어디서 열렸는지 스스로 판단해요.
 
 ## 도메인 연결 (선택)

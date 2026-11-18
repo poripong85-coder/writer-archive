@@ -31,6 +31,8 @@ const pages = {
   factory: createTextPage('factory'),
   stay: createTextPage('stay'),
   guestbook: createGuestbookPage(),
+  'meet-snowman': createTextPage('meet-snowman'),
+  'meet-persimmon': createTextPage('meet-persimmon'),
 };
 
 let mounted = null;
@@ -153,12 +155,10 @@ function showSealSheet(book, days) {
 
 function onDayChange(prev, next) {
   store.setToday(next);
-  for (const key of ['public', 'mine']) {
-    const b = store.book(key);
-    if (b?.canWrite && b.entriesOf(prev).length) pendingSeal[key] = [prev];
-  }
-  const writer = ['public', 'mine'].map(store.book).find((b) => b?.canWrite && b.entriesOf(prev).length);
-  if (writer && store.state.route !== 'fragments') toast(`${formatDayShort(prev)}의 조각이 정리됐어요`, { peel: true, ms: 4200 });
+  const writer = store.book('public');
+  if (!(writer?.canWrite && writer.entriesOf(prev).length)) { maybeShowSeal(); return; }
+  pendingSeal.public = [prev];
+  if (store.state.route !== 'fragments') toast(`${formatDayShort(prev)}의 조각이 정리됐어요`, { peel: true, ms: 4200 });
   maybeShowSeal();
 }
 
@@ -178,10 +178,10 @@ function whoText(env) {
   if (env.mode === 'local') return ['이 브라우저에서 단독 실행 중', '기록은 이 기기에만 저장돼요. app/config.js 에 Supabase를 연결하면 로그인·공유 기능이 켜져요.'];
   if (env.mode === 'offline') return ['연결하지 못했어요', '인터넷 연결을 확인하고 새로고침해 주세요.'];
   if (env.mode === 'web') {
-    if (!env.me.id) return ['로그인하지 않은 상태', '귤껍질 기록장은 누구나 볼 수 있어요. 로그인하면 나만의 기록장을 쓸 수 있어요.'];
+    if (!env.me.id) return ['방문자', '로그인 없이 모든 글을 보고 방명록을 남길 수 있어요.'];
     const acct = env.me.name || env.me.email || '';
     if (env.me.isOwner) return ['편집장(관리자)으로 접속 중', `${acct ? `${acct} · ` : ''}귤껍질 기록장과 소개 페이지를 쓰고 고칠 수 있어요.`];
-    return ['방문자로 접속 중', `${acct ? `${acct} · ` : ''}귤껍질 기록장은 읽기만 할 수 있고, 나의 기록장은 나만 볼 수 있어요.`];
+    return ['로그인한 방문자', `${acct ? `${acct} · ` : ''}편집장 계정이 아니라서 읽기와 방명록만 쓸 수 있어요.`];
   }
   if (env.mode === 'guest') return ['로그인하지 않은 상태', 'claude.ai에 로그인하면 기록을 보고 나만의 기록장을 쓸 수 있어요.'];
   if (env.me.isOwner) return ['편집장(관리자)으로 접속 중', '귤껍질 기록장과 소개 페이지를 쓰고 고칠 수 있어요.'];
@@ -194,7 +194,7 @@ function openSettings() {
     const [who, whoDesc] = whoText(env);
     body.append(row(who, whoDesc,
       env?.mode === 'web' && env.me.id ? el('button', { class: 'btn', type: 'button', text: '로그아웃', onclick: () => { close(); openAccountSheet(env); } }) : null,
-      env?.mode === 'web' && !env.me.id ? el('button', { class: 'btn primary', type: 'button', text: '로그인', onclick: () => { close(); openLoginSheet(env); } }) : null,
+      env?.mode === 'web' && !env.me.id ? el('button', { class: 'link-btn', type: 'button', text: '편집장 로그인', onclick: () => { close(); openLoginSheet(env); } }) : null,
     ));
 
     if (!framed) {
@@ -313,7 +313,8 @@ async function offerMigration(legacy, force = false) {
   const env = store.state.env;
   const pub = store.book('public');
   const mine = store.book('mine');
-  const targets = [pub, mine].filter((b) => b?.canWrite && b.status === 'ready');
+  // 나의 기록장은 더 이상 화면에 없으니 공개 기록장으로만 옮긴다
+  const targets = [pub].filter((b) => b?.canWrite && b.status === 'ready');
   if (!targets.length) return;
   if (!force) {
     const done = await local.getMeta('migratedAt', null).catch(() => null);
@@ -338,15 +339,12 @@ async function offerMigration(legacy, force = false) {
     };
     const actions = el('div', { class: 'sheet-actions' });
     if (pub?.canWrite) actions.append(el('button', { class: 'btn primary', type: 'button', text: '귤껍질 기록장으로 (공개)', onclick: () => go(pub) }));
-    if (mine?.canWrite) actions.append(el('button', { class: `btn${pub?.canWrite ? '' : ' primary'}`, type: 'button', text: '나의 기록장으로 (나만 보기)', onclick: () => go(mine) }));
     actions.append(el('button', {
       class: 'btn', type: 'button', text: '나중에',
       onclick: () => { store.storage.set('gyul.migrate.later', store.state.todayKey); close(); },
     }));
     body.append(actions);
-    if (env?.me?.isOwner) {
-      body.append(el('p', { class: 'desc', text: '귤껍질 기록장으로 옮기면 방문자 모두가 볼 수 있어요. 개인적인 기록이 섞여 있다면 나의 기록장을 고르세요.' }));
-    }
+    body.append(el('p', { class: 'desc', text: '귤껍질 기록장으로 옮기면 방문자 모두가 볼 수 있어요.' }));
   });
 }
 
@@ -371,26 +369,26 @@ render('init');
     if (back && env.me.id) {
       const r = back.replace(/^#/, '');
       if (store.ROUTES.includes(r)) { store.state.route = r; history.replaceState(null, '', back); }
-      if (r === 'fragments' && !env.me.isOwner) store.state.activeBook = 'mine';
     }
+    // 편집장 입구: 주소 끝에 #editor 를 붙여 열면 로그인 창이 뜬다
+    if (location.hash === '#editor') {
+      history.replaceState(null, '', location.pathname + location.search);
+      if (!env.me.id) openLoginSheet(env);
+    }
+    // 방문자에게는 로그인 버튼을 보이지 않는다. 로그인한 편집장에게만 계정 버튼
     const authBtn = document.getElementById('btn-auth');
-    if (authBtn) {
+    if (authBtn && env.me.id) {
       authBtn.hidden = false;
-      if (env.me.id) {
-        authBtn.textContent = '';
-        authBtn.classList.add('signed-in');
-        authBtn.setAttribute('aria-label', '내 계정');
-        if (env.me.avatarUrl) {
-          const img = el('img', { src: env.me.avatarUrl, alt: '' });
-          img.addEventListener('error', () => { img.replaceWith(document.createTextNode((env.me.name || '나').slice(0, 1))); }, { once: true });
-          authBtn.append(img);
-        } else {
-          authBtn.textContent = (env.me.name || '나').slice(0, 1);
-        }
-        authBtn.addEventListener('click', () => openAccountSheet(env));
+      authBtn.classList.add('signed-in');
+      authBtn.setAttribute('aria-label', '내 계정');
+      if (env.me.avatarUrl) {
+        const img = el('img', { src: env.me.avatarUrl, alt: '' });
+        img.addEventListener('error', () => { img.replaceWith(document.createTextNode((env.me.name || '나').slice(0, 1))); }, { once: true });
+        authBtn.append(img);
       } else {
-        authBtn.addEventListener('click', () => openLoginSheet(env));
+        authBtn.textContent = (env.me.name || '나').slice(0, 1);
       }
+      authBtn.addEventListener('click', () => openAccountSheet(env));
     }
   }
 

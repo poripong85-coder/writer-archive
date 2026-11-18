@@ -1,9 +1,9 @@
-// 소개 · 책공장 · 북스테이 — 관리자가 화면에서 바로 고치는 글.
+// 소개 · 책공장 · 북스테이 · 모임 소개 — 관리자가 화면에서 바로 고치는 글.
 // 공유 저장소에서는 pages/<key> 문서, 로컬에서는 IndexedDB meta에 둔다.
 
 import { getMeta, setMeta } from './db.js';
 
-export const PAGE_KEYS = ['intro', 'factory', 'stay'];
+export const PAGE_KEYS = ['intro', 'factory', 'stay', 'meet-snowman', 'meet-persimmon'];
 
 function clean(raw) {
   if (!raw) return null;
