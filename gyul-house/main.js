@@ -1,11 +1,30 @@
-// 귤 하우스 — 온라인 집들이.
+// 귤 하우스 — 온라인 집들이 (단독 페이지. 다른 사이트와 연결되지 않는다).
 // 중문을 똑똑(두 번) 두드리면 유리 너머로 귤 그림자가 다가오고, 문이 미끄러지며 열린 뒤 귤이 나와서 방을 하나씩 구경시켜 준다.
-// 중문 모양·방 소개 글은 app/house.js 에서 고친다. 그림은 전부 이 파일 안의 픽토그램 SVG.
+// 중문 모양·방 소개 글은 house.js 에서 고친다. 그림은 전부 이 파일 안의 픽토그램 SVG.
 
-import { el, clear } from '../ui.js';
-import * as store from '../store.js';
-import { sprite } from '../pixel.js';
-import { HOUSE } from '../house.js';
+import { HOUSE } from './house.js';
+
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') node.className = v;
+    else if (k === 'html') node.innerHTML = v;
+    else if (k === 'text') node.textContent = v;
+    else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    node.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return node;
+}
+const clear = (node) => { node.replaceChildren(); return node; };
+const storage = {
+  get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 못 해도 동작은 한다 */ } },
+};
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 
@@ -220,13 +239,13 @@ function knockSound() {
 
 /* ---------- 페이지 ---------- */
 
-export function createHousePage() {
+function createHousePage() {
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   const H = HOUSE;
   const rooms = H.rooms;
-  let soundOn = store.storage.get('gyul.house.sound', 'on') !== 'off';
+  let soundOn = storage.get('gyul.house.sound', 'on') !== 'off';
 
-  const say = el('p', { class: 'gh-say px', 'aria-live': 'polite' });
+  const say = el('p', { class: 'gh-say', 'aria-live': 'polite' });
   const knocks = el('div', { class: 'gh-knocks', 'aria-hidden': 'true' });
   const door = doorScene(H.door);
   const doorBtn = el('button', {
@@ -247,7 +266,7 @@ export function createHousePage() {
   );
 
   const scene = el('div', { class: 'gh-scene' });
-  const roomTitle = el('h2', { class: 'gh-room-name px', tabindex: '-1' });
+  const roomTitle = el('h2', { class: 'gh-room-name', tabindex: '-1' });
   const roomLine = el('p', { class: 'gh-bubble' });
   const photo = el('div', { class: 'gh-photo' });
   const dots = el('div', { class: 'gh-dots', role: 'tablist', 'aria-label': '방 고르기' });
@@ -263,19 +282,17 @@ export function createHousePage() {
     el('div', { class: 'gh-outro-art', html: `<svg viewBox="-60 -110 120 120" aria-hidden="true">${gyul({ pose: 'wave', wave: !reduced })}</svg>` }),
     el('p', { class: 'gh-bubble', text: H.outro.line }),
     el('div', { class: 'gh-actions' },
-      el('a', { class: 'btn primary', href: '#guestbook', text: H.outro.guestbook,
-        onclick: (e) => { e.preventDefault(); store.go('guestbook'); } }),
-      el('button', { class: 'btn', type: 'button', text: H.outro.again, onclick: () => reset(true) }),
+      H.outro.link?.url
+        ? el('a', { class: 'btn primary', href: H.outro.link.url, target: '_blank', rel: 'noopener noreferrer', text: H.outro.link.text })
+        : null,
+      el('button', { class: H.outro.link?.url ? 'btn' : 'btn primary', type: 'button', text: H.outro.again, onclick: () => reset(true) }),
     ),
   );
 
-  const root = el('section', { class: `page text-page gyul-house${reduced ? ' still' : ''}`, 'aria-labelledby': 'gh-title' },
-    el('header', { class: 'tp-head' },
-      sprite('i-door', { scale: 3, className: 'tp-sprite' }),
-      el('div', { class: 'tp-title' },
-        el('h1', { class: 'px', id: 'gh-title', text: H.title }),
-        el('p', { class: 'page-lead', text: H.lead }),
-      ),
+  const root = el('main', { class: `gyul-house${reduced ? ' still' : ''}`, 'aria-labelledby': 'gh-title' },
+    el('header', { class: 'gh-head' },
+      el('h1', { id: 'gh-title', text: H.title }),
+      el('p', { class: 'gh-lead', text: H.lead }),
     ),
     doorView, tourView, outroView,
     el('div', { class: 'gh-foot' }, soundBtn),
@@ -306,7 +323,7 @@ export function createHousePage() {
     const r = doorBtn.getBoundingClientRect();
     const x = evt && evt.clientX ? ((evt.clientX - r.left) / r.width) * 100 : 40 + count * 16;
     const y = evt && evt.clientY ? ((evt.clientY - r.top) / r.height) * 100 : 44;
-    const b = el('span', { class: 'gh-tok px', style: `left:${x}%;top:${y}%`, text: H.greet.knock });
+    const b = el('span', { class: 'gh-tok', style: `left:${x}%;top:${y}%`, text: H.greet.knock });
     knocks.append(b);
     setTimeout(() => b.remove(), 900);
     doorBtn.classList.remove('shake');
@@ -413,7 +430,7 @@ export function createHousePage() {
   nextBtn.addEventListener('click', () => (idx === rooms.length - 1 ? finish() : showRoom(idx + 1)));
   soundBtn.addEventListener('click', () => {
     soundOn = !soundOn;
-    store.storage.set('gyul.house.sound', soundOn ? 'on' : 'off');
+    storage.set('gyul.house.sound', soundOn ? 'on' : 'off');
     renderSound();
   });
 
@@ -430,16 +447,15 @@ export function createHousePage() {
   });
 
   const onKey = (e) => {
-    if (store.state.route !== 'gyul-house' || phase !== 'tour') return;
-    if (document.querySelector('.sheet-backdrop')) return;
+    if (phase !== 'tour') return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); showRoom(idx - 1); }
     if (e.key === 'ArrowRight') { e.preventDefault(); idx === rooms.length - 1 ? finish() : showRoom(idx + 1); }
   };
 
-  return {
-    root,
-    update() {},
-    activate() { reset(); document.addEventListener('keydown', onKey); },
-    deactivate() { clearTimers(); document.removeEventListener('keydown', onKey); },
-  };
+  reset();
+  document.addEventListener('keydown', onKey);
+  return root;
 }
+
+document.title = HOUSE.title;
+document.body.prepend(createHousePage());

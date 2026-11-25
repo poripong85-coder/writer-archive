@@ -1,4 +1,47 @@
-/* 귤 하우스 — 온라인 집들이 (중문 → 귤 → 방 투어). 그림은 app/pages/house-page.js 의 SVG */
+/* 귤 하우스 — 온라인 집들이 (단독 페이지). 그림은 main.js 의 SVG */
+
+:root {
+  --peel-100: #FFEBD6; --peel-300: #FFB973; --peel-400: #FF9B3E; --peel-500: #F97F1C; --peel-700: #AE4B07;
+  --bg: #FFFBF6; --surface: #FFFFFF; --line: #F0E1CE;
+  --text: #2A211A; --text-dim: #7A6A5B;
+  --accent: var(--peel-500); --accent-ink: #FFFFFF;
+  --bubble: #FFE7B8; --bubble-ink: #3A2B18;
+  --shadow: 0 1px 2px rgba(80, 50, 20, .06), 0 6px 20px rgba(120, 70, 20, .07);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16120E; --surface: #221C16; --line: #3A2F25;
+    --text: #F2E7DA; --text-dim: #B7A691;
+    --accent: var(--peel-400); --accent-ink: #241503;
+    --bubble: #4A3312; --bubble-ink: #FFE9C7;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  word-break: keep-all; overflow-wrap: anywhere;
+  background: var(--bg); color: var(--text);
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.gyul-house {
+  max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;
+  padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+}
+.gh-head { text-align: center; }
+.gh-head h1 { margin: 8px 0 0; font-size: 26px; letter-spacing: -.02em; }
+.gh-lead { margin: 6px auto 0; max-width: 34ch; font-size: 15px; color: var(--text-dim); line-height: 1.6; text-wrap: balance; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: 10px; padding: 7px 13px; font: inherit; font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.btn:hover { border-color: var(--peel-300); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn[hidden] { display: none; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 
 .gyul-house {
   --gh-wall: #FBEBD6;
@@ -14,18 +57,8 @@
   --gh-glass-b: rgba(255, 255, 255, .38);
   --gh-clear: rgba(190, 225, 240, .16);
 }
-:root[data-theme="dark"] .gyul-house, :root.dark .gyul-house {
-  --gh-wall: #3A2D22;
-  --gh-floor: #5A4030;
-  --gh-base: #6E4E37;
-  --gh-in: #6B5233;
-  --gh-in-floor: #7A5A3A;
-  --gh-sky: #6E8FA6;
-  --gh-glass: rgba(230, 225, 215, .55);
-  --gh-glass-b: rgba(230, 225, 215, .3);
-}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .gyul-house {
+  :root .gyul-house {
     --gh-wall: #3A2D22;
     --gh-floor: #5A4030;
     --gh-base: #6E4E37;
@@ -126,8 +159,7 @@
 .gh-room-svg { display: block; width: 100%; height: auto; }
 .gh-card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
 .gh-room-name { margin: 0; font-size: 14px; color: var(--peel-700); outline: none; }
-:root[data-theme="dark"] .gh-room-name, :root.dark .gh-room-name { color: var(--peel-300); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gh-room-name { color: var(--peel-300); } }
+@media (prefers-color-scheme: dark) { :root .gh-room-name { color: var(--peel-300); } }
 
 .gh-bubble {
   position: relative; margin: 0; padding: 12px 16px; border-radius: 14px;

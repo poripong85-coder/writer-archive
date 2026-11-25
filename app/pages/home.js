@@ -53,16 +53,6 @@ export function createHomePage() {
       ),
     ));
   }
-  list.append(el('li', { class: 'wide' },
-    el('button', { class: 'place-card', type: 'button', onclick: () => store.go('gyul-house') },
-      sprite('i-door', { scale: 3, className: 'place-icon' }),
-      el('span', { class: 'place-text' },
-        el('strong', { class: 'px', text: '귤 하우스 집들이' }),
-        el('span', { text: '중문을 똑똑, 귤이 집 구경을 시켜 줘요' }),
-      ),
-      el('span', { class: 'place-go', 'aria-hidden': 'true', text: '→' }),
-    ),
-  ));
 
   const root = el('section', { class: 'page home', 'aria-labelledby': 'welcome' },
     el('h1', { class: 'welcome px', id: 'welcome' },

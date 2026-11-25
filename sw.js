@@ -1,11 +1,10 @@
 // 앱 셸 오프라인 캐시. 기록 자체는 IndexedDB에 있으므로 여기서는 정적 파일만 다룬다.
-const CACHE = 'gyul-shell-v8';
+const CACHE = 'gyul-shell-v7';
 const SHELL = [
   './',
   'index.html',
   'styles/app.css',
   'styles/site.css',
-  'styles/house.css',
   'fonts/Galmuri11.woff2',
   'manifest.webmanifest',
   'icons/icon.svg',
@@ -37,8 +36,6 @@ const SHELL = [
   'app/pages/guestbook-page.js',
   'app/pages/shop-page.js',
   'app/shop.js',
-  'app/house.js',
-  'app/pages/house-page.js',
   'app/guestbook.js',
 ];
 

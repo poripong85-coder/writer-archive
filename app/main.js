@@ -12,7 +12,6 @@ import { createFragmentsPage } from './pages/fragments-page.js';
 import { createTextPage } from './pages/page.js';
 import { createGuestbookPage } from './pages/guestbook-page.js';
 import { createShopPage } from './pages/shop-page.js';
-import { createHousePage } from './pages/house-page.js';
 import { createGuestbook } from './guestbook.js';
 import { exportBackup, parseBackup } from './backup.js';
 import * as local from './db.js';
@@ -36,7 +35,6 @@ const pages = {
   'meet-snowman': createTextPage('meet-snowman'),
   'meet-persimmon': createTextPage('meet-persimmon'),
   'buy-snowman': createShopPage('buy-snowman'),
-  'gyul-house': createHousePage(),
 };
 
 let mounted = null;
