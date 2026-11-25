@@ -7,7 +7,8 @@ import { createTodayView } from '../views/today.js';
 import { createCalendarView } from '../views/calendar.js';
 import { createFragmentsView } from '../views/fragments.js';
 import { sprite } from '../pixel.js';
-import { MEETINGS, pageMeta, pageLead } from './page.js';
+import { MEETINGS, pageMeta, pageLead, pageStatus } from './page.js';
+import { PRODUCTS } from '../shop.js';
 
 const TAB_LABEL = { today: '오늘 쓰기', calendar: '달력', fragments: '조각 모음' };
 const FACTORY = { today: createTodayView, calendar: createCalendarView, fragments: createFragmentsView };
@@ -59,11 +60,24 @@ export function createFragmentsPage() {
         sprite(meta.icon, { scale: 3, className: 'meet-icon' }),
         el('span', { class: 'meet-text' },
           el('strong', { class: 'meet-name', text: meta.title }),
+          pageStatus(key) ? el('span', { class: 'status-pill', text: pageStatus(key) }) : null,
           el('span', { class: 'meet-lead', text: pageLead(key) }),
         ),
         el('span', { class: 'meet-go', 'aria-hidden': 'true', text: '→' }),
       ));
     }
+    const shop = PRODUCTS['buy-snowman'];
+    meetings.append(el('a', {
+      class: 'meet-card shop-card', href: '#buy-snowman',
+      onclick: (e) => { e.preventDefault(); store.go('buy-snowman'); },
+    },
+      sprite(shop.icon, { scale: 3, className: 'meet-icon' }),
+      el('span', { class: 'meet-text' },
+        el('strong', { class: 'meet-name', text: `${shop.name} 구매하기` }),
+        shop.buyUrl ? null : el('span', { class: 'status-pill', text: shop.status }),
+      ),
+      el('span', { class: 'meet-go', 'aria-hidden': 'true', text: '→' }),
+    ));
   }
 
   function renderWho(b) {

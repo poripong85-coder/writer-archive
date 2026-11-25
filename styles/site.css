@@ -415,3 +415,56 @@
 .login-done { display: flex; flex-direction: column; gap: 8px; text-align: center; }
 .login-done p { margin: 0; }
 .login-done .px { font-size: 12px; color: var(--text); }
+
+/* ---------- 오픈 준비중 · 판매 준비중 표시 ---------- */
+.status-pill {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font); font-size: 12px; font-weight: 700; line-height: 1.5;
+  padding: 2px 10px; border-radius: 999px; background: var(--peel-100); color: var(--peel-700);
+}
+.status-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.tp-title .status-pill { margin: 2px 0 4px; }
+.meet-card.shop-card { grid-column: 1 / -1; border-style: dashed; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.page-actions .btn { text-decoration: none; }
+
+/* ---------- 사부작 책공장: 바깥 글 목록 ---------- */
+.link-list { display: grid; gap: 10px; }
+.link-list-title { margin: 0; font-size: 12px; line-height: 1.4; color: var(--text-dim); }
+.link-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.link-card {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: var(--surface); color: var(--text); text-decoration: none;
+  border: 2px solid var(--line); border-radius: 14px; transition: border-color .12s;
+}
+.link-card:hover { border-color: var(--peel-300); }
+.link-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.link-kind {
+  flex: none; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 8px;
+  background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--line);
+}
+.link-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.link-text strong { font-size: 14.5px; }
+.link-url { font-size: 13px; color: var(--text-dim); overflow-wrap: anywhere; }
+.link-go { flex: none; color: var(--text-mute); font-weight: 700; }
+
+/* ---------- 상품 구매 페이지 ---------- */
+.shop-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.shop-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; border: 2px solid var(--line); }
+.shop-photos img:first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
+.shop-photo-empty {
+  display: grid; place-items: center; gap: 10px; padding: 36px 16px; text-align: center;
+  background: var(--surface-2); border: 2px dashed var(--line); border-radius: 16px;
+}
+.shop-photo-empty p { margin: 0; font-size: 12px; color: var(--text-dim); }
+.shop-section { display: grid; gap: 8px; }
+.shop-section h2 { margin: 0; font-size: 13px; }
+.shop-section p { margin: 0; }
+.shop-items { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.shop-facts { margin: 0; display: grid; gap: 0; border-top: 2px solid var(--line); }
+.shop-fact { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 2px solid var(--line); }
+.shop-fact dt { font-weight: 700; font-size: 14px; }
+.shop-fact dd { margin: 0; font-size: 14px; }
+.shop-buy { text-align: center; text-decoration: none; }
+.shop-buy:disabled { opacity: .6; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .link-card { transition: none; } }

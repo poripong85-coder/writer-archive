@@ -2,7 +2,7 @@
 
 import { dayKeyOf } from './util.js';
 
-export const ROUTES = ['home', 'intro', 'fragments', 'factory', 'stay', 'guestbook', 'meet-snowman', 'meet-persimmon'];
+export const ROUTES = ['home', 'intro', 'fragments', 'factory', 'stay', 'guestbook', 'meet-snowman', 'meet-persimmon', 'buy-snowman'];
 
 const listeners = new Set();
 
