@@ -1,0 +1,189 @@
+/* 귤 하우스 — 온라인 집들이 (중문 → 귤 → 방 투어). 그림은 app/pages/house-page.js 의 SVG */
+
+.gyul-house {
+  --gh-wall: #FBEBD6;
+  --gh-floor: #E3B98A;
+  --gh-base: #C9965F;
+  --gh-in: #FFF3D9;
+  --gh-in-floor: #F2D3A6;
+  --gh-sky: #CFEAF7;
+  --gh-ink: #3A2B18;
+  --gh-wood: #B77A45;
+  --gh-line: #7A4B25;
+  --gh-glass: rgba(255, 255, 255, .7);
+  --gh-glass-b: rgba(255, 255, 255, .38);
+  --gh-clear: rgba(190, 225, 240, .16);
+}
+:root[data-theme="dark"] .gyul-house, :root.dark .gyul-house {
+  --gh-wall: #3A2D22;
+  --gh-floor: #5A4030;
+  --gh-base: #6E4E37;
+  --gh-in: #6B5233;
+  --gh-in-floor: #7A5A3A;
+  --gh-sky: #6E8FA6;
+  --gh-glass: rgba(230, 225, 215, .55);
+  --gh-glass-b: rgba(230, 225, 215, .3);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .gyul-house {
+    --gh-wall: #3A2D22;
+    --gh-floor: #5A4030;
+    --gh-base: #6E4E37;
+    --gh-in: #6B5233;
+    --gh-in-floor: #7A5A3A;
+    --gh-sky: #6E8FA6;
+    --gh-glass: rgba(230, 225, 215, .55);
+    --gh-glass-b: rgba(230, 225, 215, .3);
+  }
+}
+
+.gh-view[hidden] { display: none !important; }
+.gh-view { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.gh-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.gh-actions .btn { padding: 10px 18px; font-size: 14px; }
+.gh-foot { display: flex; justify-content: center; }
+.gh-foot .btn { font-size: 12px; color: var(--text-dim); }
+
+/* ---- 중문 무대 ---- */
+.gh-stage { position: relative; width: min(100%, 420px); }
+.gh-door {
+  display: block; width: 100%; padding: 0; border: 0; cursor: pointer;
+  background: none; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 0 0 2px var(--line);
+  -webkit-tap-highlight-color: transparent;
+}
+.gh-door:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.gh-door-svg { display: block; width: 100%; height: auto; }
+
+.gh-wall { fill: var(--gh-wall); }
+.gh-floor { fill: var(--gh-floor); }
+.gh-base { fill: var(--gh-base); }
+.gh-in { fill: var(--gh-in); }
+.gh-in-floor { fill: var(--gh-in-floor); }
+.gh-cord { stroke: var(--gh-line); stroke-width: 2; }
+.gh-lamp { fill: #FFD23F; }
+.gh-mat { fill: #F97F1C; opacity: .85; }
+.gh-pot { fill: #C9744A; }
+.gh-leaf { fill: #5AA65A; }
+.gh-plate { fill: var(--surface); stroke: var(--gh-base); stroke-width: 2; }
+.gh-glass-frost { fill: var(--gh-glass); }
+.gh-glass-clear { fill: var(--gh-clear); }
+.gh-flute-a { fill: var(--gh-glass); }
+.gh-flute-b { fill: var(--gh-glass-b); }
+.gh-shine { stroke: rgba(255, 255, 255, .7); stroke-width: 3; stroke-linecap: round; fill: none; }
+
+.gy-shadow { fill: rgba(60, 35, 15, .16); }
+.gy-limb path { stroke: #DE6408; stroke-width: 6; stroke-linecap: round; fill: none; }
+.gy-wave { animation: gy-wave .7s ease-in-out infinite alternate; transform-origin: 0 0; }
+@keyframes gy-wave { from { transform: rotate(-8deg); } to { transform: rotate(28deg); } }
+
+/* 귤: 처음엔 문 뒤에 없다 → 두드리면 유리 너머로 다가온다 → 문이 열리면 앞으로 나온다 */
+.gh-in-gyul { opacity: 0; transition: opacity .9s ease; }
+.gyul-house.answering .gh-in-gyul { opacity: 1; }
+.gyul-house.opened .gh-in-gyul { opacity: 0; transition-duration: .2s; }
+.gh-out-gyul { opacity: 0; transform: translateY(-14px); transition: opacity .35s ease .55s, transform .45s cubic-bezier(.3, 1.6, .5, 1) .55s; }
+.gyul-house.opened .gh-out-gyul { opacity: 1; transform: none; }
+
+.gh-panel { transition: transform 1.1s cubic-bezier(.55, 0, .25, 1); }
+.gyul-house.opened .gh-panel { transform: translateX(var(--shift)); }
+
+.gh-door.shake .gh-door-svg { animation: gh-shake .22s ease; }
+@keyframes gh-shake {
+  25% { transform: translateX(-2px); } 50% { transform: translateX(2px); } 75% { transform: translateX(-1px); }
+}
+
+.gh-tok {
+  position: absolute; pointer-events: none; transform: translate(-50%, -50%);
+  font-size: 20px; color: var(--peel-700);
+  background: var(--surface); border: 2px solid var(--peel-400); border-radius: 12px; padding: 4px 10px;
+  animation: gh-tok .9s ease-out forwards;
+}
+@keyframes gh-tok {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); }
+  20% { opacity: 1; transform: translate(-50%, -60%) scale(1.1); }
+  100% { opacity: 0; transform: translate(-50%, -140%) scale(1); }
+}
+
+.gh-say {
+  position: absolute; left: 50%; top: 10px; transform: translateX(-50%);
+  margin: 0; max-width: calc(100% - 24px); width: max-content;
+  padding: 8px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; text-align: center;
+  background: var(--bubble); color: var(--bubble-ink); box-shadow: var(--shadow);
+  pointer-events: none;
+}
+.gh-say[hidden] { display: none; }
+.gh-say.pop { animation: gh-pop .3s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes gh-pop { from { transform: translateX(-50%) scale(.85); opacity: .4; } }
+
+/* ---- 방 투어 ---- */
+.gh-card {
+  width: min(100%, 560px); border-radius: 18px; overflow: hidden;
+  background: var(--surface); border: 2px solid var(--line);
+}
+.gh-scene { touch-action: pan-y; cursor: grab; }
+.gh-scene.enter { animation: gh-enter .35s ease; }
+@keyframes gh-enter { from { opacity: 0; transform: translateX(14px); } }
+.gh-room-svg { display: block; width: 100%; height: auto; }
+.gh-card-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.gh-room-name { margin: 0; font-size: 14px; color: var(--peel-700); outline: none; }
+:root[data-theme="dark"] .gh-room-name, :root.dark .gh-room-name { color: var(--peel-300); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gh-room-name { color: var(--peel-300); } }
+
+.gh-bubble {
+  position: relative; margin: 0; padding: 12px 16px; border-radius: 14px;
+  background: var(--bubble); color: var(--bubble-ink); font-size: 15px; line-height: 1.65;
+}
+.gh-card .gh-bubble::after {
+  content: ""; position: absolute; right: 34px; top: -9px;
+  border: 9px solid transparent; border-top: 0; border-bottom-color: var(--bubble);
+}
+.gh-photo img { width: 100%; border-radius: 12px; display: block; }
+.gh-photo[hidden] { display: none; }
+
+.gh-dots { display: flex; gap: 8px; justify-content: center; }
+.gh-dot {
+  width: 12px; height: 12px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--peel-400); background: transparent;
+}
+.gh-dot.on { background: var(--peel-500); border-color: var(--peel-500); }
+
+/* room pictogram parts */
+.r-frame { fill: var(--surface); stroke: var(--gh-base); stroke-width: 2; }
+.r-sky { fill: var(--gh-sky); }
+.r-mullion { stroke: var(--surface); stroke-width: 4; }
+.r-cord, .r-line { stroke: var(--gh-line); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.r-rug { fill: #F6D38A; opacity: .8; }
+.r-leg { stroke: var(--gh-line); stroke-width: 5; stroke-linecap: round; }
+.r-leg-w { stroke: var(--gh-wood); stroke-width: 6; stroke-linecap: round; }
+.r-pot { fill: #C9744A; }
+.r-leaf { fill: #5AA65A; }
+.r-cab { fill: #FFF8EC; stroke: #E6C99A; stroke-width: 2; }
+.r-top { fill: var(--gh-wood); }
+.r-fridge { fill: #DDE7EC; stroke: #A9BCC6; stroke-width: 2; }
+.r-steam { stroke: #A6957F; stroke-width: 2; fill: none; stroke-linecap: round; opacity: .7; }
+.r-shelf { fill: var(--gh-wood); }
+.r-board { stroke: var(--gh-line); stroke-width: 4; }
+.r-poster { fill: #FFF8EC; stroke: var(--gh-base); stroke-width: 2; }
+.r-desk { fill: var(--gh-wood); }
+.r-arm { stroke: var(--gh-line); stroke-width: 3; fill: none; stroke-linecap: round; }
+.r-wood { fill: var(--gh-wood); }
+.r-chair { stroke: var(--gh-line); stroke-width: 4; fill: #FFB973; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- 마무리 ---- */
+.gh-outro-art { width: 150px; }
+.gh-outro-art svg { display: block; width: 100%; height: auto; }
+.gh-outro .gh-bubble { max-width: 420px; text-align: center; }
+.gh-outro a.btn { text-decoration: none; }
+
+/* 움직임 줄이기 */
+.gyul-house.still .gh-panel,
+.gyul-house.still .gh-in-gyul,
+.gyul-house.still .gh-out-gyul { transition-duration: .01s; transition-delay: 0s; }
+.gyul-house.still .gh-door.shake .gh-door-svg,
+.gyul-house.still .gh-tok,
+.gyul-house.still .gh-scene.enter,
+.gyul-house.still .gh-say.pop { animation: none; }
+.gyul-house.still .gy-wave { animation: none; transform: rotate(18deg); }
+@media (prefers-reduced-motion: reduce) {
+  .gy-wave { animation: none; transform: rotate(18deg); }
+}

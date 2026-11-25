@@ -50,6 +50,19 @@
 
 마을 하늘은 시간을 따릅니다: 낮엔 달 자리에 해, 저녁(17~19시)엔 해가 내려오며 노을빛, 밤엔 달과 별.
 
+## 귤 하우스 집들이
+
+`#gyul-house` — 픽토그램으로 하는 온라인 집들이. 홈 맨 아래 카드와 메뉴에서 들어갑니다.
+
+1. 중문을 **똑똑**(두 번) 두드리면 간유리 너머로 귤 그림자가 다가오며 "누구세요~?"
+2. 문짝이 한쪽으로 미끄러져 열리고 귤이 손을 흔들며 나옵니다
+3. **집 구경 시작** → 방마다 픽토그램 장면 + 귤의 한마디 (← → 키, 옆으로 밀기도 됨)
+4. 끝나면 방명록에 한마디 남기기로 이어집니다
+
+중문 모양과 방 소개 글은 [`app/house.js`](app/house.js) 한 곳에서 고칩니다.
+문짝 수(1~4)·열리는 쪽·아치형·문틀 색·유리 종류(투명/불투명/모루유리)·가로 살 위치·손잡이 색,
+그리고 방 이름·대사·사진 주소(`photo`). 장면 그림은 `living · kitchen · study · bedroom · veranda` 중에서 고릅니다.
+
 ## 어디서 어떻게 돌아가나
 
 같은 코드가 실행 환경을 스스로 판단합니다 (`app/env.js`).
@@ -105,6 +118,7 @@ npm test       # 날짜 경계·파싱·통계·봉인 판정 순수 로직 테�
 index.html               셸 (헤더·메뉴). 앱 본문은 <!--app:start--> ~ <!--app:end-->
 styles/app.css           조각 화면 컴포넌트 (말풍선·달력·조각 카드)
 styles/site.css          사이트 셸, 도트 마을 홈, 글 페이지
+styles/house.css         귤 하우스 집들이 (중문·방 픽토그램)
 fonts/Galmuri11.woff2    한글 픽셀 폰트 (Galmuri, SIL OFL 1.1)
 app/
   main.js                부팅, 라우팅(#intro #fragments #factory #stay), 설정, 알림, 이전
@@ -120,7 +134,8 @@ app/
   ui.js · media.js · backup.js · util.js · db.js
   views/                 today · calendar · fragments (기록장을 받아 그림)
   guestbook.js           방명록 데이터 (Supabase · claude db · IndexedDB)
-  pages/                 home · fragments-page · page(소개/책공장/북스테이) · guestbook-page
+  house.js               귤 하우스 집들이: 중문 모양·방 소개 글
+  pages/                 home · fragments-page · page(소개/책공장/북스테이) · guestbook-page · house-page(집들이)
 vendor/                  supabase-js 2.117.3 (MIT) — 웹 모드에서만 불러옴
 supabase/schema.sql      표·권한 규칙·사진 저장소·방명록 (SQL Editor에 붙여넣기)
 supabase/guestbook.sql   방명록만 따로 (schema.sql 을 이미 실행한 프로젝트용)
