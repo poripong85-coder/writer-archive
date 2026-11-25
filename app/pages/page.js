@@ -16,7 +16,7 @@ const META = {
   },
   factory: {
     title: '사부작 책공장', icon: 'pencil', soon: '사부작사부작, 책을 만드는 곳이 문을 여는 중이에요.',
-    // 본문 아래에 늘 붙는 책·글 목록 (편집장이 쓴 소개 글과 따로)
+    // 본문 아래에 늘 붙는 책·글 목록 (편집장이 쓴 소개 글과 따로). title 을 누르면 url 로 간다, desc 는 한 줄 소개
     links: {
       title: '책공장에서 나온 글',
       items: [
@@ -80,17 +80,18 @@ function renderBody(text) {
   return wrap;
 }
 
-/** 바깥 글 목록 — 새 탭으로 연다 */
+/** 바깥 글 목록 — 제목을 누르면 새 탭으로 연다. 제목이 아직 없으면 주소를 대신 보여준다 */
 function linkList({ title, items }) {
   return el('section', { class: 'link-list', 'aria-label': title },
     el('h2', { class: 'px link-list-title', text: title }),
     el('ul', {}, ...items.map((it) => {
       const u = new URL(it.url);
-      return el('li', {}, el('a', { class: 'link-card', href: it.url, target: '_blank', rel: 'noopener noreferrer' },
+      const label = it.title || `${u.host.replace(/^www\./, '')}${u.pathname}`;
+      return el('li', {}, el('a', { class: `link-card${it.title ? '' : ' untitled'}`, href: it.url, target: '_blank', rel: 'noopener noreferrer' },
         el('span', { class: 'link-kind', text: it.kind }),
         el('span', { class: 'link-text' },
-          it.title ? el('strong', { text: it.title }) : null,
-          el('span', { class: 'link-url', text: `${u.host.replace(/^www\./, '')}${u.pathname}` }),
+          el('strong', { class: 'link-title', text: label }),
+          it.desc ? el('span', { class: 'link-desc', text: it.desc }) : null,
         ),
         el('span', { class: 'link-go', 'aria-hidden': 'true', text: '↗' }),
       ));

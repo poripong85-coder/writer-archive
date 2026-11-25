@@ -444,8 +444,10 @@
   background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--line);
 }
 .link-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.link-text strong { font-size: 14.5px; }
-.link-url { font-size: 13px; color: var(--text-dim); overflow-wrap: anywhere; }
+.link-title { font-size: 15px; line-height: 1.4; text-decoration: underline; text-decoration-color: var(--peel-300); text-underline-offset: 4px; }
+.link-card:hover .link-title { text-decoration-color: var(--accent); }
+.link-card.untitled .link-title { font-weight: 500; font-size: 13.5px; color: var(--text-dim); overflow-wrap: anywhere; text-decoration: none; }
+.link-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
 .link-go { flex: none; color: var(--text-mute); font-weight: 700; }
 
 /* ---------- 상품 구매 페이지 ---------- */
