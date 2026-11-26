@@ -137,6 +137,7 @@ export function createFragmentsPage() {
     clear(body);
     body.append(view.root);
     body.dataset.tab = tab;
+    root.dataset.tab = tab;
     mounted = { key: b.key, tab, view };
     view.update('mount');
     view.activate?.();
@@ -149,6 +150,7 @@ export function createFragmentsPage() {
     if (!b) {
       clear(body);
       body.dataset.tab = 'none';
+      root.dataset.tab = 'none';
       body.append(el('div', { class: 'signin-card' }, el('p', { class: 'px', text: '조각을 불러오는 중이에요…' })));
       return;
     }
@@ -160,6 +162,7 @@ export function createFragmentsPage() {
       tabs.hidden = true;
       clear(body);
       body.dataset.tab = 'none';
+      root.dataset.tab = 'none';
       body.append(b.status === 'signin' ? signinCard(b) : errorCard());
       return;
     }

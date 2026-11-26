@@ -118,7 +118,13 @@
 }
 
 .main { overflow-y: auto; overflow-x: hidden; min-height: 0; position: relative; -webkit-overflow-scrolling: touch; }
-.main[data-route="fragments"] { overflow: hidden; }
+/* 일상 모임 조각: '오늘 쓰기'만 입력창을 바닥에 붙이려고 안쪽에서 스크롤하고,
+   달력·조각 모음은 모임 카드와 함께 페이지 전체가 스크롤한다 (폰에서 달력이 좁은 띠로 갇히지 않게) */
+.main[data-route="fragments"]:has(.fp[data-tab="today"]) { overflow: hidden; }
+.fp:not([data-tab="today"]) { height: auto; padding-bottom: 28px; }
+.fp:not([data-tab="today"]) .book-body,
+.fp:not([data-tab="today"]) .book-body > .view { height: auto; flex: none; }
+.fp:not([data-tab="today"]) .scroll { overflow: visible; flex: none; }
 .page, .prose, .join-text p, .signin-card p, .page-lead { word-break: keep-all; overflow-wrap: anywhere; }
 .page { padding-left: var(--gutter-l); padding-right: var(--gutter-r); padding-block: 20px 40px; }
 
